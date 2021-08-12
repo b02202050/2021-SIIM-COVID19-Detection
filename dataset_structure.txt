@@ -1,0 +1,207 @@
+dataset/
+├── chest-xray-covid19-pneumonia/
+│   ├── all_symlinks/
+│   │   └── *.jpg
+│   ├── chest-xray-covid19-pneumonia.csv
+│   ├── Data/
+│   │   ├── test/
+│   │   │   ├── COVID19/
+│   │   │   │   └── *.jpg
+│   │   │   ├── NORMAL/
+│   │   │   │   └── *.jpg
+│   │   │   └── PNEUMONIA/
+│   │   │       └── *.jpg
+│   │   └── train/
+│   │       ├── COVID19/
+│   │       │   └── *.jpg
+│   │       ├── NORMAL/
+│   │       │   └── *.jpg
+│   │       └── PNEUMONIA/
+│   │           └── *.jpg
+│   └── make_image_symlink.py
+├── chest-xray-pneumonia/
+│   ├── all_symlinks/
+│   │   └── *.jpeg
+│   ├── chest-xray-pneumonia.csv
+│   ├── make_image_symlink.py
+│   ├── test/
+│   │   ├── NORMAL/
+│   │   │   └── *.jpeg
+│   │   └── PNEUMONIA/
+│   │       └── *.jpeg
+│   ├── train/
+│   │   ├── NORMAL/
+│   │   │   └── *.jpeg
+│   │   └── PNEUMONIA/
+│   │       └── *.jpeg
+│   └── val/
+│       ├── NORMAL/
+│       │   └── *.jpeg
+│       └── PNEUMONIA/
+│           └── *.jpeg
+├── CheXpert-v1.0/
+│   ├── all_images_symlink/
+│   │   └── *.jpg
+│   ├── CheXpert_Atelectasis_split_withpatid.csv
+│   ├── CheXpert_Cardiomegaly_split_withpatid.csv
+│   ├── CheXpert_Consolidation_split_withpatid.csv
+│   ├── CheXpert_Edema_split_withpatid.csv
+│   ├── CheXpert_Enlarged_Cardiomediastinum_split_withpatid.csv
+│   ├── CheXpert_Fracture_split_withpatid.csv
+│   ├── CheXpert_Lung_Lesion_split_withpatid.csv
+│   ├── CheXpert_Lung_Opacity_split_withpatid.csv
+│   ├── CheXpert_Pleural_Effusion_split_withpatid.csv
+│   ├── CheXpert_Pleural_Other_split_withpatid.csv
+│   ├── CheXpert_Pneumonia_split_withpatid.csv
+│   ├── CheXpert_Pneumothorax_split_withpatid.csv
+│   ├── CheXpert_Support_Devices_split_withpatid.csv
+│   ├── make_image_symlink.py
+│   ├── train/
+│   │   └── [64540 folders]
+│   ├── train.csv
+│   ├── valid/
+│   │   └── [200 folders]
+│   └── valid.csv
+├── covid19-xray-two-proposed-databases/
+│   ├── 3-classes/
+│   │   ├── Test/
+│   │   │   ├── Covid-19/
+│   │   │   │   └── *.png
+│   │   │   ├── Normal/
+│   │   │   │   └── *.jpg
+│   │   │   └── Pneumonia/
+│   │   │       └── *.png
+│   │   ├── Train/
+│   │   │   ├── Covid-19/
+│   │   │   │   └── *.jpg
+│   │   │   ├── Normal/
+│   │   │   │   └── *.jpg
+│   │   │   └── Pneumonia/
+│   │   │       └── *.jpg
+│   │   └── Val/
+│   │       ├── Covid-19/
+│   │       │   └── *.jpeg
+│   │       ├── Normal/
+│   │       │   └── *.jpg
+│   │       └── Pneumonia/
+│   │           └── *.jpg
+│   ├── 5-classes/
+│   │   ├── Test/
+│   │   │   ├── Bacterial/
+│   │   │   │   └── *.png
+│   │   │   ├── Covid-19/
+│   │   │   │   └── *.png
+│   │   │   ├── Lung Opacity/
+│   │   │   │   └── *.jpg
+│   │   │   ├── Normal/
+│   │   │   │   └── *.jpg
+│   │   │   └── Viral/
+│   │   │       └── *.jpeg
+│   │   ├── Train/
+│   │   │   ├── Bacterial/
+│   │   │   │   └── *.png
+│   │   │   ├── Covid-19/
+│   │   │   │   └── *.jpg
+│   │   │   ├── Lung Opacity/
+│   │   │   │   └── *.jpg
+│   │   │   ├── Normal/
+│   │   │   │   └── *.jpg
+│   │   │   └── Viral/
+│   │   │       └── *.jpeg
+│   │   └── Val/
+│   │       ├── Bacterial/
+│   │       │   └── *.jpg
+│   │       ├── Covid-19/
+│   │       │   └── *.jpeg
+│   │       ├── Lung Opacity/
+│   │       │   └── *.jpg
+│   │       ├── Normal/
+│   │       │   └── *.jpg
+│   │       └── Viral/
+│   │           └── *.jpg
+│   ├── all_symlinks/
+│   │   └── *.png
+│   ├── covid19-xray-two-proposed-databases_3-classes.csv
+│   ├── covid19-xray-two-proposed-databases_5-classes.csv
+│   ├── make_image_symlink.py
+│   └── unify_file_extensions.py
+├── covidx-cxr2/
+│   ├── all_symlinks/
+│   │   └── *.png
+│   ├── competition_test/
+│   │   └── *.png
+│   ├── covidx-cxr2.csv
+│   ├── make_image_symlink.py
+│   ├── test/
+│   │   └── *.png
+│   ├── test.txt
+│   ├── train/
+│   │   └── *.jpg
+│   ├── train.txt
+│   └── unify_file_extensions.py
+├── curated-chest-xray-image-dataset-for-covid19/
+│   ├── all_symlinks/
+│   │   └── *.jpg
+│   ├── COVID-19/
+│   │   └── *.jpg
+│   ├── curated-chest-xray-image-dataset-for-covid19_split.csv
+│   ├── make_image_symlink.py
+│   ├── Normal/
+│   │   └── *.jpg
+│   ├── Pneumonia-Bacterial/
+│   │   └── *.jpg
+│   └── Pneumonia-Viral/
+│       └── *.jpg
+├── NIHCC_CXR14/
+│   ├── Data_Entry_2017.csv
+│   ├── nih_Atelectasis_train_val_split_withpatid.csv
+│   ├── nih_Cardiomegaly_train_val_split_withpatid.csv
+│   ├── nih_Consolidation_train_val_split_withpatid.csv
+│   ├── nih_Edema_train_val_split_withpatid.csv
+│   ├── nih_Effusion_train_val_split_withpatid.csv
+│   ├── nih_Emphysema_train_val_split_withpatid.csv
+│   ├── nih_Fibrosis_train_val_split_withpatid.csv
+│   ├── nih_Hernia_train_val_split_withpatid.csv
+│   ├── nih_Infiltration_train_val_split_withpatid.csv
+│   ├── nih_Mass_train_val_split_withpatid.csv
+│   ├── nih_Nodule_train_val_split_withpatid.csv
+│   ├── nih_Pleural_Thickening_train_val_split_withpatid.csv
+│   ├── nih_Pneumonia_train_val_split_withpatid.csv
+│   ├── nih_Pneumothorax_train_val_split_withpatid.csv
+│   ├── NIH_task_map_to_our_name.txt
+│   ├── NIHCC_CXR14/
+│   │   └── *.png
+│   ├── test_list.txt
+│   └── train_val_list.txt
+├── ricord-covid19-xray-positive-tests/
+│   ├── MIDRC-RICORD/
+│   │   └── MIDRC-RICORD/
+│   │       └── *.jpg
+│   └── ricord-covid19-xray-positive-tests_split.csv
+└── siim-covid19-detection/
+    │   └── dcm2png-checkpoint.py
+    ├── dcm2png.py
+    ├── make_image_symlink.py
+    ├── png_1024/
+    │   ├── test/
+    │   │   └── [1214 folders]
+    │   └── train/
+    │       └── [6054 folders]
+    ├── png_1024_symlinks/
+    │   └── *.png
+    ├── test/
+    │   └── [1214 folders]
+    ├── train/
+    │   └── [6054 folders]
+    ├── train_classification_labels_with_split_cv_5_0.csv
+    ├── train_classification_labels_with_split_cv_5_1.csv
+    ├── train_classification_labels_with_split_cv_5_2.csv
+    ├── train_classification_labels_with_split_cv_5_3.csv
+    ├── train_classification_labels_with_split_cv_5_4.csv
+    ├── train_detection_labels_with_split_for_1024_cv_5_0.csv
+    ├── train_detection_labels_with_split_for_1024_cv_5_1.csv
+    ├── train_detection_labels_with_split_for_1024_cv_5_2.csv
+    ├── train_detection_labels_with_split_for_1024_cv_5_3.csv
+    ├── train_detection_labels_with_split_for_1024_cv_5_4.csv
+    ├── train_image_level.csv
+    └── train_study_level.csv

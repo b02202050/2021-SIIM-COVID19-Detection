@@ -1,0 +1,14 @@
+NIH_Pneumonia pneumonia
+NIH_Hernia NIH_Hernia
+NIH_Atelectasis NIH_Atelectasis
+NIH_Nodule nodule
+NIH_Edema NIH_Edema
+NIH_Cardiomegaly NIH_Cardiomegaly
+NIH_Infiltration NIH_Infiltration
+NIH_Effusion NIH_Effusion
+NIH_Emphysema NIH_Emphysema
+NIH_Pneumothorax pneumothorax
+NIH_Pleural_Thickening NIH_Pleural_Thickening
+NIH_Mass lung_mass
+NIH_Fibrosis NIH_Fibrosis
+NIH_Consolidation NIH_Consolidation

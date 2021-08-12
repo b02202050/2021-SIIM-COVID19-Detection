@@ -1,0 +1,260 @@
+## CheXpert
+CheXpert_Atelectasis:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Atelectasis_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Cardiomegaly:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Cardiomegaly_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Consolidation:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Consolidation_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Edema:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Edema_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Enlarged_Cardiomediastinum:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Enlarged_Cardiomediastinum_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Fracture:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Fracture_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Lung_Lesion:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Lung_Lesion_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Lung_Opacity:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Lung_Opacity_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Pleural_Effusion:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Pleural_Effusion_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Pleural_Other:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Pleural_Other_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Pneumonia:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Pneumonia_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Pneumothorax:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Pneumothorax_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+CheXpert_Support_Devices:
+    blackout_bbox_file:
+    file_extension: jpg
+    image_folder: ../dataset/CheXpert-v1.0/all_images_symlink
+    label_column_name: GT
+    label_file: ../dataset/CheXpert-v1.0/CheXpert_Support_Devices_split_withpatid.csv
+    num_classes: 2
+    institution: CheXpert
+    
+
+## NIH
+NIH_Atelectasis:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Atelectasis_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Cardiomegaly:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Cardiomegaly_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Consolidation:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Consolidation_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Edema:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Edema_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Effusion:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Effusion_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Emphysema:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Emphysema_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Fibrosis:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Fibrosis_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Hernia:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Hernia_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Infiltration:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Infiltration_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Mass:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Mass_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Nodule:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Nodule_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Pleural_Thickening:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Pleural_Thickening_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Pneumonia:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Pneumonia_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+NIH_Pneumothorax:
+    blackout_bbox_file:
+    image_folder: ../dataset/NIHCC_CXR14/NIHCC_CXR14
+    label_column_name: Finding Labels
+    label_file: ../dataset/NIHCC_CXR14/nih_Pneumothorax_train_val_split_withpatid.csv
+    num_classes: 2
+    institution: NIH
+
+
+
+## Kaggle
+kaggle_chest_xray_covid19_pneumonia:
+    label_column_name: label
+    num_classes: 3 # other, pna, covid19
+    image_folder: ../dataset/chest-xray-covid19-pneumonia/all_symlinks
+    blackout_bbox_file:
+    label_file: ../dataset/chest-xray-covid19-pneumonia/chest-xray-covid19-pneumonia.csv
+    file_extension: jpg
+kaggle_covidx_cxr2:
+    label_column_name: label
+    num_classes: 2 # other, covid19
+    image_folder: ../dataset/covidx-cxr2/all_symlinks
+    blackout_bbox_file:
+    label_file: ../dataset/covidx-cxr2/covidx-cxr2.csv
+    file_extension: png
+    website: https://www.kaggle.com/preetviradiya/covid19-radiography-dataset
+kaggle_chest_xray_pneumonia:
+    label_column_name: label
+    num_classes: 3 # other, bacterial_pna, viral_pna
+    image_folder: ../dataset/chest-xray-pneumonia/all_symlinks
+    blackout_bbox_file:
+    label_file: ../dataset/chest-xray-pneumonia/chest-xray-pneumonia.csv
+    file_extension: jpeg
+kaggle_curated_chest_xray_image_dataset_for_covid19:
+    label_column_name: label
+    num_classes: 4 # other, bacterial_pna, viral_pna, covid19
+    image_folder: ../dataset/curated-chest-xray-image-dataset-for-covid19/all_symlinks
+    blackout_bbox_file:
+    label_file: ../dataset/curated-chest-xray-image-dataset-for-covid19/curated-chest-xray-image-dataset-for-covid19_split.csv
+    file_extension: jpg
+kaggle_covid19_xray_two_proposed_databases_3_classes:
+    label_column_name: label
+    num_classes: 3 # other, pna, covid19
+    image_folder: ../dataset/covid19-xray-two-proposed-databases/all_symlinks
+    blackout_bbox_file:
+    label_file: ../dataset/covid19-xray-two-proposed-databases/covid19-xray-two-proposed-databases_3-classes.csv
+    file_extension: png
+kaggle_covid19_xray_two_proposed_databases_5_classes:
+    label_column_name: label
+    num_classes: 5 # other, bacterial_pna, viral_pna, covid19, other_lung_opacity
+    image_folder: ../dataset/covid19-xray-two-proposed-databases/all_symlinks
+    blackout_bbox_file:
+    label_file: ../dataset/covid19-xray-two-proposed-databases/covid19-xray-two-proposed-databases_5-classes.csv
+    file_extension: png
+kaggle_ricord_covid19_xray_positive_tests:
+    label_column_name: agg_label
+    num_classes: 4 # other, typical, indeterminate, atypical
+    image_folder: ../dataset/ricord-covid19-xray-positive-tests/MIDRC-RICORD/MIDRC-RICORD
+    blackout_bbox_file:
+    label_file: ../dataset/ricord-covid19-xray-positive-tests/ricord-covid19-xray-positive-tests_split.csv
+    file_extension: jpg
