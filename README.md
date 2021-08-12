@@ -67,7 +67,22 @@ If the patient ID is present, we split the dataset by it.
 
 
 ## Train
+*Training configurations are set in the code instead of other config files. For example, set `args_dict['CUDA_VISIBLE_DEVICES'] = '0,1'` to use the first two GPU*
+
 #### Multi-task classification pretraining
+```
+$ cd src/classification
+$ python train_multitask_classification.py
+$ python transfer_multitask_pretrained_backbone.py
+$ cd -
+```
+
+#### SIIM Covid19 study-level training
+```
+$ cd src/classification
+$ python train_multitask_classification.py
+
+```
 
 ```python
 
