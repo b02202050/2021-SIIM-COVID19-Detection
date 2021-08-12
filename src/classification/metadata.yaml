@@ -1,3 +1,41 @@
+## SIIM
+covid19_kaggle_train_cv_5_0:
+    label_column_name: label
+    num_classes: 4
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+    blackout_bbox_file:
+    label_file: ../../dataset/siim-covid19-detection/train_classification_labels_with_split_cv_5_0.csv
+    institution: covid19_kaggle
+covid19_kaggle_train_cv_5_1:
+    label_column_name: label
+    num_classes: 4
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+    blackout_bbox_file:
+    label_file: ../../dataset/siim-covid19-detection/train_classification_labels_with_split_cv_5_1.csv
+    institution: covid19_kaggle
+covid19_kaggle_train_cv_5_2:
+    label_column_name: label
+    num_classes: 4
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+    blackout_bbox_file:
+    label_file: ../../dataset/siim-covid19-detection/train_classification_labels_with_split_cv_5_2.csv
+    institution: covid19_kaggle
+covid19_kaggle_train_cv_5_3:
+    label_column_name: label
+    num_classes: 4
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+    blackout_bbox_file:
+    label_file: ../../dataset/siim-covid19-detection/train_classification_labels_with_split_cv_5_3.csv
+    institution: covid19_kaggle
+covid19_kaggle_train_cv_5_4:
+    label_column_name: label
+    num_classes: 4
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+    blackout_bbox_file:
+    label_file: ../../dataset/siim-covid19-detection/train_classification_labels_with_split_cv_5_4.csv
+    institution: covid19_kaggle
+    
+
 ## CheXpert
 CheXpert_Atelectasis:
     blackout_bbox_file:

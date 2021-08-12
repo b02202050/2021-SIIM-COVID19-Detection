@@ -9,7 +9,6 @@ header_key = 'backbone.'
 target_folder = 'pretrained'
 os.makedirs(target_folder, exist_ok=True)
 
-datetime_string = re.sub(r'\W', '_', str(datetime.datetime.now()))
 output_file = os.path.join(target_folder, 'pretrained_run1_transferred.pth')
 ckpt = torch.load(ckpt_file, map_location='cpu')
 

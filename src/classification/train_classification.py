@@ -36,56 +36,48 @@ args_dict = dict()
 # ## Train Config
 
 # +
-args_dict['task_name'] = 'pneumothorax_EDAH_age_20_remove_clinical' # lung_mass_20190604, pulmonary_congestion, tb_scenario1, pneumothorax_EDAH_age_20_remove_clinical, covid19_kaggle_train, covid19_kaggle_train_seed_1, covid19_kaggle_train_r1b4
-args_dict['choose_best'] = 'auc'
+args_dict['task_name'] = 'covid19_kaggle_train_cv_5_0'
+args_dict['choose_best'] = 'ap'
 args_dict['metric_class'] = -1
-args_dict['CUDA_VISIBLE_DEVICES'] = '4'
-#args_dict['CUDA_VISIBLE_DEVICES'] = 'MIG-GPU-13575fea-1205-1859-fe99-3dad6622131d/2/0'
+args_dict['CUDA_VISIBLE_DEVICES'] = '0'
 args_dict['channel'] = 3 # 3
 args_dict['random_seed'] = None # None
 
-args_dict['pretrained'] = '/workspace/host/Terence/code/femh_cxr/learning/classification/pretrained/model_2021_08_09_03_58_55_107054.pth' # None, 'imagenet', or specified model file
-#args_dict['pretrained'] = '/workspace/host/Terence/code/femh_cxr/learning/multitask_detection/work_dir/BYOL/model_2021_04_23_07_54_53_145364/model_99_epoch.pth' # None, 'imagenet', or specified model file
-#args_dict['pretrained'] = '/workspace/host/terence/code/kaggle_covid_19/learning/multitask_detection/pretrained/model_v8_3_effb7_multitask_from_byol.pth'
-#args_dict['pretrained'] = 'imagenet'
-#args_dict['pretrained'] = None
+args_dict['pretrained'] = 'pretrained/pretrained_run1_transferred.pth'
 
 args_dict['sync_bn'] = False
-args_dict['optimizer'] = 'SGD' # SGD, Adam, Ranger21
+args_dict['optimizer'] = 'Adam'
 args_dict['epoch_step_lr'] = []
-args_dict['warmup_lr'] = False
+args_dict['warmup_lr'] = True
 args_dict['cosine_lr'] = False
 args_dict['weight_decay'] = 0  # 0
-args_dict['batch_size'] = 8 
+args_dict['batch_size'] = 16
 args_dict['aug_sample_multiplier'] = 1 # 1
 args_dict['accumulate_grad_batches'] = 1
-args_dict['lr'] = 0.05 / 256 * args_dict['batch_size'] * len(args_dict['CUDA_VISIBLE_DEVICES'].split(',') * args_dict['accumulate_grad_batches']) # 0.01 SGD
-#args_dict['lr'] = 1e-3 / 256 * args_dict['batch_size'] * len(args_dict['CUDA_VISIBLE_DEVICES'].split(',') * args_dict['accumulate_grad_batches']) # 0.01 Adam
-#args_dict['lr'] = 1e-4
-#args_dict['lr'] *= 2
+args_dict['lr'] = 1e-3 / 256 * args_dict['batch_size'] * len(args_dict['CUDA_VISIBLE_DEVICES'].split(',') * args_dict['accumulate_grad_batches'])
 
-args_dict['epochs'] = 1000 # 1000
-args_dict['amp'] = False # True
+args_dict['epochs'] = 20
+args_dict['amp'] = True
 args_dict['model_name'] = 'tf_efficientnet_b7_ns'
-args_dict['model_input_size'] = 512 # 512
+args_dict['model_input_size'] = 512
 args_dict['output_dir'] = f"work_dir/{args_dict['task_name']}_run1"
 
 # Exclusive args (Please note that some are mutually exclusive)
-args_dict['class_weight'] = None # None, [8.0, 6.0, 10.0, 15.0], [7.0, 4.0, 11.0, 25.0]
-args_dict['use_focal_loss'] = False
-args_dict['FL_suppress'] = 'hard' # 'easy', 'hard'
-args_dict['FL_alpha'] = 0.5 # 0.5
-args_dict['FL_gamma'] = 0.5 # 2.0
-args_dict['soft_label'] = 1.0 # 1.0 to disable
-args_dict['use_sigmoid'] = False
+args_dict['class_weight'] = None
+args_dict['use_focal_loss'] = True
+args_dict['FL_suppress'] = 'hard'
+args_dict['FL_alpha'] = 0.5
+args_dict['FL_gamma'] = 0.5
+args_dict['soft_label'] = 1.0
+args_dict['use_sigmoid'] = True
 
 
-args_dict['train_blackout'] = True
+args_dict['train_blackout'] = False
 args_dict['dataset_shrinking_factor'] = 1.0
 args_dict['fix_backbone'] = False
 args_dict['SWA'] = False
 args_dict['SWAG_diag'] = False
-args_dict['SAM'] = False
+args_dict['SAM'] = True
 args_dict['shapleys'] = None # None, 'work_dir/calc_shapley/trial_2021_05_08_12_05_54_872714/unbiased_shapleys.pth'
 args_dict['removing_by_shapley'] = 0.1 # ratios or 'neg'
 args_dict['final_pool'] = 'avg' # avg, max, multipcam, pcam, softmax
@@ -113,9 +105,8 @@ args_dict['RandAugment'] = True
 
 args_dict['finetune'] = False
 args_dict['load_optim'] = False
-args_dict['finetune_model_file'] = 'work_dir/FEMH/covid19_kaggle_train/task_name_covid19_kaggle_train_datetime_2021_07_07_09_03_16_045502/model_best.pth'
+args_dict['finetune_model_file'] = ''
 args_dict['tag'] = ''
-# -
 
 try:
     args_dict['execution_file'] = os.path.basename(__file__)
@@ -133,12 +124,7 @@ gpu_info = subprocess.run(
     stdout=subprocess.PIPE,
     check=True).stdout
 
-# construct output_dir string
-output_dir_str_dict = dict()
-output_dir_str_dict['task_name'] = args_dict['task_name']
-output_dir_str_dict['datetime'] = str(datetime.datetime.now())
-output_dir = os.path.join(args_dict['output_dir_root'], args_dict['task_name'],
-                          myUtils.repr_dict(output_dir_str_dict))
+output_dir = args_dict['output_dir']
 utils.mkdir(output_dir)
 
 # prepare log file
@@ -156,8 +142,6 @@ config_file = os.path.join(output_dir, 'config.txt')
 if os.path.isfile(config_file):
     os.remove(config_file)
 
-
-# -
 def train_one_epoch(
         model,  # pylint: disable=redefined-outer-name
         criterion,  # pylint: disable=redefined-outer-name
@@ -264,7 +248,6 @@ def evaluate(model, criterion, data_loader, device, print_freq=10):  # pylint: d
             image = image.to(device)
             target = target.to(device)
             output = model(image)
-            #print(output.shape)
             scores = torch.cat((scores, output))
             targets = torch.cat((targets, target))
             all_idx.append(idxes)
@@ -337,16 +320,6 @@ print(args)
 
 print("Loading data")
 
-# +
-# Load pretrained models and set normalization
-
-# This set of normalization parameters is copied from torchvision
-# pretrained models, but may be different from the pytorch "pretrainedmodels"
-# package. We ignore this discrepency due to the experimental similar results of
-# different normalization.
-#normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-#                                 std=[0.229, 0.224, 0.225])
-
 assert not (args_dict['pretrained'] is not None and args_dict['finetune']), "Finetune and pretrained can be applied exclusively."
 
 if args_dict['finetune']:
@@ -383,7 +356,6 @@ elif args_dict['pretrained'] is None:
         norm_mean = [0.5 for _ in range(args_dict['channel'])]
         norm_std = [0.5 for _ in range(args_dict['channel'])]
     
-
 normalize = transforms.Normalize(mean=norm_mean, std=norm_std)
 
 # +
@@ -442,12 +414,6 @@ transform_test_list = [
     transforms.Resize(args_dict['model_input_size'])
 ]
 
-# Assume the input image has the same value over all channels.
-if args_dict['channel'] != 3:
-    transform_train_list.append(lambda x: x.mean(dim=0, keepdim=True).repeat(
-        args_dict['channel'], 1, 1))
-    transform_test_list.append(lambda x: x.mean(dim=0, keepdim=True).repeat(
-        args_dict['channel'], 1, 1))
 transform_train_list.append(normalize)
 transform_test_list.append(normalize)
 
@@ -463,7 +429,7 @@ if args_dict['shapleys'] is not None:
     elif args_dict['removing_by_shapley'] == 'neg':
         removing_idxes = set((shapleys < 0).nonzero(as_tuple=True)[0].tolist())
     
-dataset_train = myUtils.FEMHClassificationDataset(
+dataset_train = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
     blackout=args_dict['train_blackout'],
     split='train',
@@ -474,7 +440,7 @@ dataset_train = myUtils.FEMHClassificationDataset(
 )
 
 print("Loading validation data")
-dataset_val = myUtils.FEMHClassificationDataset(
+dataset_val = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
     blackout=False,
     split='val',
@@ -483,15 +449,9 @@ dataset_val = myUtils.FEMHClassificationDataset(
     standardize=args_dict['standardize'],
     return_idx=True,
 )
-if args_dict['dataset_shrinking_factor'] != 1.:
-    torch.manual_seed(42)
-    dataset_val = torch.utils.data.Subset(
-        dataset_val,
-        torch.randperm(len(dataset_val))
-        [:int(len(dataset_val) * args_dict['dataset_shrinking_factor'])].tolist())
     
 print("Loading training data for evaluation")
-dataset_train_evaluate = myUtils.FEMHClassificationDataset(
+dataset_train_evaluate = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
     blackout=False,
     split='train',
@@ -544,7 +504,7 @@ data_loader_train_evaluate = torch.utils.data.DataLoader(
     num_workers=min(args_dict['batch_size'] // 2, 16),
     pin_memory=False)
 
-# +
+
 print("Create model")
 # create model
 if args_dict['model_name'] in timm.list_models():
@@ -553,22 +513,6 @@ if args_dict['model_name'] in timm.list_models():
         pretrained=(args_dict['pretrained'] == 'imagenet'),
         num_classes=myUtils.metadata[args_dict['task_name']]['num_classes']
     )
-
-if args_dict['fix_backbone']:
-    myUtils.freeze_all(model)
-    if args_dict['model_name'] in ['tf_efficientnet_b7_ns', 'tf_efficientnet_b7_ap']:
-        for p in model.classifier.parameters():
-            p.requires_grad_(True)
-    elif args_dict['model_name'] == 'inceptionresnetv2':
-        for p in model.last_linear.parameters():
-            p.requires_grad_(True)
-    elif args_dict['model_name'] in ['resnet50', 'resnet18']:
-        for p in model.fc.parameters():
-            p.requires_grad_(True)
-    else:
-        raise NotImplementedError()
-
-    
     
 if args_dict['pretrained'] is not None and args_dict['pretrained'] != 'imagenet':
     msg = model.load_state_dict({k: v for k, v in checkpoint['model'].items() if k not in ['fc.weight', 'fc.bias', 'classifier.weight', 'classifier.bias']})
@@ -607,18 +551,7 @@ elif args_dict['optimizer'] == 'Adam':
                         amsgrad=True,
                         weight_decay=args_dict['weight_decay']
                        )
-elif args_dict['optimizer'] == 'Ranger21':
-    from optimizer.ranger21 import Ranger21
-    optim_class = Ranger21
-    optim_params = dict(lr=args_dict['lr'],
-                        weight_decay=args_dict['weight_decay'],
-                        num_epochs=args_dict['epochs'],
-                        num_batches_per_epoch=len(data_loader_train),
-                        use_warmup=False, # I have SAM which may call optimizer.step multiple times each iteration
-                        warmdown_active=False, # I use best validation model instead of the final model.
-                       )
-else:
-    raise ValueError(f"Unrecognizable optimizer: {args_dict['optimizer']}.")
+
 if args_dict['SAM']:
     optimizer = myUtils.SAMOptim(model.parameters(), optim_class, **optim_params)
 else:
@@ -626,31 +559,12 @@ else:
     
 scaler = torch.cuda.amp.GradScaler(enabled=args_dict['amp'])
 
-#lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-#                                               step_size=args_dict['lr_step_size'],
-#                                               gamma=0.1)
-
-# SWA
-if args_dict['SWA']:
-    swa_model = AveragedModel(model)
-    if args_dict['SWAG_diag']:
-        SWAG_K = 20
-        weight_sq = copy.deepcopy(OrderedDict([(k, v.cpu() ** 2) for k, v in model.state_dict().items()]))
-        #SWAG_Dhat = []
-
 model_without_ddp = model
 if args.distributed:
     model = torch.nn.parallel.DistributedDataParallel(model,
                                                       device_ids=[args.gpu])
     model_without_ddp = model.module
 
-# modify the following code to resume training
-#if args.resume:
-#    checkpoint = torch.load(args.resume, map_location='cpu')
-#    model_without_ddp.load_state_dict(checkpoint['model'])
-#    optimizer.load_state_dict(checkpoint['optimizer'])
-#    lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-#    args.start_epoch = checkpoint['epoch'] + 1
 start_epoch = 0
 
 if args_dict['cosine_lr']:
@@ -675,38 +589,25 @@ for epoch in range(start_epoch, args_dict['epochs']):
         train_sampler.set_epoch(epoch)
     train_one_epoch(model, criterion, optimizer, data_loader_train, device,
                     epoch, 10, scaler)
-    #checkpoint = {'model': model_without_ddp.state_dict()}
-    #utils.save_on_master(checkpoint, os.path.join(output_dir, 'model_best.pth'))
-    #print('Done')
-    #sys.exit(0)
     if args_dict['cosine_lr']:
         lr_scheduler.step()
-    if args_dict['SWA']:
-        swa_model.update_parameters(model_without_ddp)
-        if args_dict['SWAG_diag']:
-            myUtils.update_swag(weight_sq, model_without_ddp.state_dict(), swa_model.n_averaged, swa_model.avg_fn)
-        with torch.no_grad():
-            torch.optim.swa_utils.update_bn(data_loader_train, swa_model, device=device)
-    val_acc1, val_ap, val_auc = evaluate(model if not args_dict['SWA'] else swa_model,
+    val_acc1, val_ap, val_auc = evaluate(model,
                                 criterion,
                                 data_loader_val,
                                 device=device)
     if epoch == start_epoch or (epoch + start_epoch) % 5 == 4:
-        train_acc1, train_ap, train_auc = evaluate(model if not args_dict['SWA'] else swa_model,
+        train_acc1, train_ap, train_auc = evaluate(model,
                                         criterion,
                                         data_loader_train_evaluate,
                                         device=device)
     if output_dir:
         # save model
         checkpoint = {
-            'model':
-                (model_without_ddp if not args_dict['SWA'] else swa_model.module).state_dict(),
+            'model':model_without_ddp.state_dict(),
             'lr_scheduler':
                 lr_scheduler.state_dict() if args_dict['cosine_lr'] else None,
             'scaler':
                 scaler.state_dict(),
-            #'optimizer':
-            #    optimizer.state_dict(),
             'epoch':
                 epoch,
             'args_dict':
@@ -728,13 +629,6 @@ for epoch in range(start_epoch, args_dict['epochs']):
                 'CUDA_VISIBLE_DEVICES': os.environ['CUDA_VISIBLE_DEVICES'],
             }
         }
-        if args_dict['SWA']:
-            #checkpoint['swa_model'] = swa_model.state_dict()
-            #checkpoint['n_averaged'] = swa_model.n_averaged
-            if args_dict['SWAG_diag']:
-                checkpoint['weight_sq'] = weight_sq
-                checkpoint['SWAG_K'] = SWAG_K
-                #checkpoint['SWAG_Dhat'] = SWAG_Dhat
         if args_dict['choose_best'] == 'acc':
             metric_value = val_acc1
         elif args_dict['choose_best'] == 'ap':
