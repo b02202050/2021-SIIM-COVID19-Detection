@@ -69,24 +69,29 @@ If the patient ID is present, we split the dataset by it.
 
 
 ## Train
+*Let `$SIIM_root` denote the root folder of this package.*
 
 #### Multi-task classification pretraining
 ```
-$ cd src/classification
+$ cd $SIIM_root/src/classification
 $ python train_multitask_classification.py
 $ python transfer_multitask_pretrained_backbone.py
-$ cd -
 ```
 
 #### SIIM Covid19 study-level training
 ```
-$ cd src/classification
+$ cd $SIIM_root/src/classification
 $ python train_classification.py configs/config_cv0.py
 $ python train_classification.py configs/config_cv1.py
 $ python train_classification.py configs/config_cv2.py
 $ python train_classification.py configs/config_cv3.py
 $ python train_classification.py configs/config_cv4.py
-$ cd -
+```
+
+#### RSNA pneumonia detection pretraining
+```
+$ cd $SIIM_root/src/detection
+$ python train_detection.py configs/config_RSNA_pna_pretraining.py
 ```
 
 ```python

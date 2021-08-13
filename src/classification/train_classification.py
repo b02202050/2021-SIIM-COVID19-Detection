@@ -370,7 +370,7 @@ if args_dict['use_focal_loss']:
                                   suppress=args_dict['FL_suppress'],
                                  )
 elif args_dict['use_sigmoid']:
-    criterion = myUtils.BCEWithLogitsCategoricalLoss(args_dict['soft_label'])
+    criterion = myUtils.BCEWithLogitsCategoricalLoss()
 
 if args_dict['optimizer'] == 'SGD':
     optim_class = torch.optim.SGD

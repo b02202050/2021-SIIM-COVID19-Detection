@@ -1,5 +1,3 @@
-#import SimpleITK as sitk # This should be placed at the first line
-#import radiomics
 import yaml
 from PIL import Image
 import os
@@ -24,14 +22,12 @@ from collections.abc import Iterable
 from timm_backbone_wrapper import timm_fpn_backbone
 from collections import OrderedDict
 
-
-
 try:
     base_dir = os.path.dirname(os.path.abspath(__file__))
 except NameError:
     base_dir = '.'
-if base_dir.endswith('learning/classification'):
-    base_dir = base_dir.replace('learning/classification', 'learning/multitask_detection')
+if base_dir.endswith('classification'):
+    base_dir = base_dir.replace('classification', 'detection')
     
 cwd = os.getcwd()
 os.chdir(base_dir)
@@ -58,10 +54,7 @@ class DetectionDataset():
             task_name: the keys in the metadata file.
             split: one of 'train', 'val', or 'test'.
             transforms: This transform takes an PIL RGB image as input.
-            multitask: If True, task name will be appended in the return tuple.
             more_info: If True, the accesion number will be appended in the return tuple.
-            blackout: If True, the area outside the lung will be filled black before
-                doing any transforms.
             pos_multiplier: duplicate the positive samples for n times.
             return_idx: If True, the idx passed to __getitem__ will be appended in the return tuple.
             transforms2: Do the transform based on the original image.
@@ -74,18 +67,11 @@ class DetectionDataset():
     """
     
     def __init__(self, read_label, task_name, split, transforms=None,
-                 multitask=False, more_info=False, blackout=False,
-                 pos_multiplier=1, return_idx=False, transforms2=None,
-                 transforms2_1=None, transforms2_2=None, equalize=False,
-                 exclude_accno=set(), preprocess_resize_1024=False,
+                 more_info=False, return_idx=False, preprocess_resize_1024=False,
                 ):
         self.task_name = task_name
         self.split = split
         self.transforms = transforms
-        self.transforms2 = transforms2
-        self.transforms2_1 = transforms2_1
-        self.transforms2_2 = transforms2_2
-        self.multitask = multitask
         self.more_info = more_info
         self.return_idx = return_idx
         self.preprocess_resize_1024 = preprocess_resize_1024
@@ -94,16 +80,6 @@ class DetectionDataset():
             metadata[task_name]['label_file'],
             split
         )
-        if len(exclude_accno) > 0:
-            self.labels = [data for data in self.labels if data['ACCNO'] not in exclude_accno]
-        self.equalize = equalize
-        if pos_multiplier > 1:
-            pos_labels = [l for l in self.labels if len(l['labels']['labels']) > 0]
-            for i in range(pos_multiplier - 1):
-                extra_pos = copy.deepcopy(pos_labels)
-                for j in range(len(extra_pos)):
-                    extra_pos[j]['labels']['image_id'] += len(self.labels) * (i+1)
-                self.labels += extra_pos
         # self.labels:
         #     [{'ACCNO': 'RA01817105660010',
         #       'labels': {
@@ -118,11 +94,6 @@ class DetectionDataset():
         #     ]
         check_all_images_exist(metadata[task_name]['image_folder'], self.labels)
         self.exist_file_names = {name[:name.find('.')]: name for name in os.listdir(metadata[task_name]['image_folder'])}
-        self.blackout = blackout
-        if blackout:
-            blackout_file = metadata[task_name]['blackout_bbox_file']
-            # dict like {column -> [values]}
-            self.blackout_data = pd.read_csv(blackout_file).to_dict('list')
     
     def __len__(self):
         return len(self.labels)
@@ -206,19 +177,6 @@ def repr_dict(config):
         v_str = ''.join([ch if is_naming_char(ch) else '_' for ch in v_str])
         out_list.append(str(k) + '_' + v_str)
     return '_'.join(out_list)
-
-
-def print_dict_readable(config):
-    readable_str = ''
-    name = config['name']
-    for k, v in config.items():
-        if not (k == 'name'):
-            v_str = repr(v) if not isinstance(v, float) else f'{v:.4}'
-            print(f"{name}['{k}'] = {v_str}  <br>") 
-            readable_str += f"{name}['{k}'] = {v_str}"
-            readable_str += '\n'
-    return readable_str
-
 
 def print_dict_readable_no_br(config):
     readable_str = ''
@@ -327,56 +285,11 @@ class Colorjitter():
     def __call__(self, image, target):
         return self.torchvision_colorjitter(image), target
 
-
-class RandomWindow():
-    def __init__(self, scale):
-        if scale > 1:
-            raise ValueError('scale should be <= 1 !')
-        self.scale = scale
-    def __call__(self, image, target):
-        determined_scale = random.random() * (1 - self.scale) + self.scale
-        determined_low = random.random() * (1 - determined_scale)
-        np_float_image = np.array(image).astype(float)
-        np_float_image = (np_float_image / 255 - determined_low) / determined_scale * 255
-        np_float_rescaled = np_float_image.clip(0,255).astype(np.uint8)
-        img_rescaled = Image.fromarray(np_float_rescaled)
-        return img_rescaled, target
-
-
 class Blur():
     def __init__(self, *args, **kwargs):
         self.blur_image = BlurClassification(*args, **kwargs)
     def __call__(self, image, target):
         return self.blur_image(image), target
-
-
-from scipy.ndimage import gaussian_filter
-class BlurClassification():
-    """gaussian blur the image
-    """
-
-    def __init__(self, scale):
-        self.scale = scale # scale = 1e-3 ~ 1e-2
-        self.ToPILImage = torchvision.transforms.ToPILImage(mode='RGB')
-
-    def __call__(self, img):
-        w, h = torchvision.transforms.transforms._get_image_size(img)
-        if w != h:
-            raise ValueError('Not implemented for non-square image.')
-        img_size = w
-        
-        img = np.asarray(img)
-        sigma = random.uniform(0, img_size * self.scale)
-        img = gaussian_filter(img, sigma=sigma)
-        img = self.ToPILImage(img)
-
-        return img
-
-    def __repr__(self):
-        format_string = self.__class__.__name__ + '('
-        format_string += 'scale={0})'.format(self.scale)
-        return format_string
-
 
 class RandomRotationExpand(object):
     """
@@ -479,56 +392,6 @@ class RandomRotationExpand(object):
         return format_string
     def repr_oneline(self):
         return (f'rtc_{self.degree}')
-
-
-class ImageTransformWrapper():
-    """Transform only image"""
-    
-    def __init__(self, transform):
-        self.transform = transform
-        
-    def __call__(self, image, target):
-        return self.transform(image), target
-
-
-class Resize():
-    """ Resize the image and box for object detection data """
-    
-    def __init__(self, target_size, interpolation=Image.BILINEAR):
-        self.target_size = target_size
-        self.interpolation = interpolation
-        
-    def __call__(self, image, label):
-        width, height = image.size
-        image = image.resize((self.target_size, self.target_size), self.interpolation)
-        width_scale = self.target_size / width
-        height_scale = self.target_size / height
-        if 'boxes' in label and len(label['boxes']) != 0:
-            label['boxes'][:, [0, 2]] = label['boxes'][:, [0, 2]] * width_scale
-            label['boxes'][:, [1, 3]] = label['boxes'][:, [1, 3]] * height_scale
-        return image, label
-
-class FixedSizeRotation(torchvision.transforms.RandomRotation):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-    def forward(self, img):
-        if isinstance(img, torch.Tensor):
-            shape = img.shape[-2:]
-            img = super().forward(img)
-            if len(img.shape) == 3:
-                img = torch.nn.functional.interpolate(img[None], shape, mode='bilinear', align_corners=False)[0]
-            elif len(img.shape) == 4:
-                img = torch.nn.functional.interpolate(img, shape, mode='bilinear', align_corners=False)
-            else:
-                raise RuntimeError(f'Invalid img shape: {img.shape}')
-                
-        else:
-            shape = img.size
-            img = super().forward(img)
-            img = img.resize(shape)
-        
-        return img
 
 class RandomShift(torch.nn.Module):
     """
@@ -749,18 +612,6 @@ class AlbumentationTransforms():
         
         return transformed_image, transformed_label
 
-
-def create_empty_label(idx):
-    labels = {}
-    bbox_tensor = torch.tensor([]).reshape(-1, 4)
-    labels['boxes'] = bbox_tensor
-    labels['labels'] = torch.tensor([]).long()
-    labels['image_id'] = torch.tensor([idx])
-    labels['area'] = torch.tensor([])
-    labels['iscrowd'] = torch.tensor([]).long()
-    return labels
-
-
 def is_naming_char(ch):
     if ch >= '0' and ch <= '9':
         return True
@@ -772,213 +623,12 @@ def is_naming_char(ch):
         return True
     return False
 
-
-from torch.nn.modules.utils import _pair
-def my_torchvision_ops_poolers_roi_align(input, boxes, output_size, spatial_scale=1.0, sampling_ratio=-1):
-    # type: (Tensor, Tensor, int, float, int) -> Tensor
-    """
-    Performs Region of Interest (RoI) Align operator described in Mask R-CNN
-
-    Arguments:
-        input (Tensor[N, C, H, W]): input tensor
-        boxes (Tensor[K, 5] or List[Tensor[L, 4]]): the box coordinates in (x1, y1, x2, y2)
-            format where the regions will be taken from. If a single Tensor is passed,
-            then the first column should contain the batch index. If a list of Tensors
-            is passed, then each Tensor will correspond to the boxes for an element i
-            in a batch
-        output_size (int or Tuple[int, int]): the size of the output after the cropping
-            is performed, as (height, width)
-        spatial_scale (float): a scaling factor that maps the input coordinates to
-            the box coordinates. Default: 1.0
-        sampling_ratio (int): number of sampling points in the interpolation grid
-            used to compute the output value of each pooled output bin. If > 0,
-            then exactly sampling_ratio x sampling_ratio grid points are used. If
-            <= 0, then an adaptive number of grid points are used (computed as
-            ceil(roi_width / pooled_w), and likewise for height). Default: -1
-
-    Returns:
-        output (Tensor[K, C, output_size[0], output_size[1]])
-    """
-    rois = boxes
-    output_size = _pair(output_size)
-    if not isinstance(rois, torch.Tensor):
-        rois = convert_boxes_to_roi_format(rois)
-    rois = rois.type(input.type())
-    return torch.ops.torchvision.roi_align(input, rois, spatial_scale,
-                                           output_size[0], output_size[1],
-                                           sampling_ratio)
-
-class RandomRemoveBox():
-    """
-        randomly remove gt box
-        Args:
-            prob: probability to remove a gt box.
-    """
-    
-    def __init__(self, prob=.2):
-        self.prob = prob
-        
-    def __call__(self, img, target):
-        if len(target['boxes']) == 0:
-            return img, target
-        box_idx = list(range(len(target['labels'])))
-        random.shuffle(box_idx)
-        box_idx_reserve = [x for i, x in enumerate(box_idx) if (i == 0 or random.random() >= self.prob)]
-        
-        new_target = dict()
-        new_target['image_id'] = target['image_id']
-        new_target['boxes'] = target['boxes'][box_idx_reserve]
-        new_target['labels'] = target['labels'][box_idx_reserve]
-        new_target['area'] = target['area'][box_idx_reserve]
-        new_target['iscrowd'] = target['iscrowd'][box_idx_reserve]
-        return img, new_target
-
-
-class RandomShiftBoxOutward():
-    """
-        randomly shift gt box outward
-        Args:
-            scale: scale to shift a gt box.
-    """
-    
-    def __init__(self, scale=.3):
-        self.scale = scale
-        
-    def __call__(self, img, target):
-        if len(target['boxes']) == 0:
-            return img, target
-        
-        for i in range(len(target['boxes'])):
-            box_w = target['boxes'][i][2] - target['boxes'][i][0]
-            box_h = target['boxes'][i][3] - target['boxes'][i][1]
-            cx = (target['boxes'][i][2] + target['boxes'][i][0]) / 2 - img.size[0] / 2
-            cy = (target['boxes'][i][3] + target['boxes'][i][1]) / 2 - img.size[1] / 2
-            alpha = min(box_w / np.abs(cx), box_h / np.abs(cy))
-            d_cx = alpha * cx * random.random() * self.scale
-            d_cy = alpha * cy * random.random() * self.scale
-            target['boxes'][i][[0,2]] += d_cx
-            target['boxes'][i][[1,3]] += d_cy
-            if target['boxes'][i][0] < 0:
-                target['boxes'][i][0].fill_(0.)
-            if target['boxes'][i][1] < 0:
-                target['boxes'][i][1].fill_(0.)
-            if target['boxes'][i][2] > img.size[0]:
-                target['boxes'][i][2].fill_(img.size[0])
-            if target['boxes'][i][3] > img.size[1]:
-                target['boxes'][i][3].fill_(img.size[1])
-            
-        return img, target
-
-def my_roiheads_select_training_samples(self, proposals, targets):
-    # Fix forwarding of negative example and enabling soft label training
-    # type: (List[Tensor], Optional[List[Dict[str, Tensor]]])
-    self.check_targets(targets)
-    assert targets is not None
-    dtype = proposals[0].dtype
-    device = proposals[0].device
-
-    gt_boxes = [t["boxes"].to(dtype) for t in targets]
-    gt_labels = [t["labels"] for t in targets]
-    gt_scores = [t["scores"] if "scores" in t else None for t in targets]
-
-    # append ground-truth bboxes to propos
-    proposals = self.add_gt_proposals(proposals, gt_boxes)
-
-    # get matching gt indices for each proposal
-    matched_idxs, labels = self.assign_targets_to_proposals(proposals, gt_boxes, gt_labels)
-    # sample a fixed proportion of positive-negative proposals
-    sampled_inds = self.subsample(labels)
-    matched_gt_boxes = []    
-    num_images = len(proposals)
-    
-    # Prepare for soft labels
-    for gt_score in gt_scores:
-        if gt_score is not None and len(gt_score) != 0:
-            for img_id in range(num_images):
-                labels[img_id] = labels[img_id].float()
-            break
-    
-    for img_id in range(num_images):
-        img_sampled_inds = sampled_inds[img_id]
-        proposals[img_id] = proposals[img_id][img_sampled_inds]
-        labels[img_id] = labels[img_id][img_sampled_inds]
-        matched_idxs[img_id] = matched_idxs[img_id][img_sampled_inds]
-        
-        # Add soft labels
-        if gt_scores[img_id] is not None and len(gt_scores[img_id]) != 0:
-            labels[img_id][labels[img_id] > 0] = (labels[img_id] - 1. + gt_scores[img_id][matched_idxs[img_id]])[labels[img_id] > 0]
-
-        gt_boxes_in_image = gt_boxes[img_id]
-        if gt_boxes_in_image.numel() == 0:
-            # The "fastrcnn_loss" function in the RoI head will filter out the
-            # background RoI, whose "matched_idxs" would also be zero (originally -1
-            # but clamped in the "assign_targets_to_proposals" function), 
-            # So if a negative image is given, I just happily set the bbox of
-            # the "zero-th" indexed GT to something I like. Then it will be filtered
-            # at the fastrcnn_loss functon.
-            gt_boxes_in_image = torch.zeros((1, 4), dtype=dtype, device=device)
-        matched_gt_boxes.append(gt_boxes_in_image[matched_idxs[img_id]])
-
-    regression_targets = self.box_coder.encode(matched_gt_boxes, proposals)
-    
-    return proposals, matched_idxs, labels, regression_targets
-
-
-def fastrcnn_loss_with_soft_label(class_logits, box_regression, labels, regression_targets):
-    """
-        Add dynamic soft label training.
-    """
-    """
-    Computes the loss for Faster R-CNN.
-
-    Arguments:
-        class_logits (Tensor)
-        box_regression (Tensor)
-        labels (list[BoxList]): Can be soft label. For example if one of the
-            target is class "3" with scores 0.8,
-            then the target value should be 2.8.
-        regression_targets (Tensor)
-
-    Returns:
-        classification_loss (Tensor)
-        box_loss (Tensor)
-    """
-
-    labels = torch.cat(labels, dim=0)
-    regression_targets = torch.cat(regression_targets, dim=0)
-
-    classification_loss = F.cross_entropy(class_logits, labels)
-
-    # get indices that correspond to the regression targets for
-    # the corresponding ground truth labels, to be used with
-    # advanced indexing
-    sampled_pos_inds_subset = torch.nonzero(labels > 0).squeeze(1)
-    labels_pos = labels[sampled_pos_inds_subset]
-    N, num_classes = class_logits.shape
-    if N > 0:
-        box_regression = box_regression.reshape(N, -1, 4)
-
-        box_loss = F.smooth_l1_loss(
-            # Add dynamic soft label training here.
-            box_regression[sampled_pos_inds_subset, labels_pos.float().ceil().long()],
-            regression_targets[sampled_pos_inds_subset],
-            reduction="sum",
-        )
-        box_loss = box_loss / labels.numel()
-    else:
-        box_loss = 0.
-
-    return classification_loss, box_loss
-
-
 def load_state_dict_reviser_not_strict(func):
     def load_state_dict_not_strict(*args, **kwargs):
         if not 'strict' in kwargs:
             kwargs['strict'] = False
         return func(*args, **kwargs)
     return load_state_dict_not_strict
-
-
 
 def all_gather(data):
     """
@@ -1069,161 +719,6 @@ def synchronize_variables(*args):
         
     dist.barrier()
     return receives
-
-class CV2Resize():
-    """Resize the input PIL Image to the given size with cv2.
-
-    Args:
-        size (sequence or int): Desired output size. If size is a sequence like
-            (h, w), output size will be matched to this. If size is an int,
-            smaller edge of the image will be matched to this number.
-            i.e, if height > width, then image will be rescaled to
-            (size * height / width, size)
-        interpolation (int, optional): Desired interpolation. Default is
-            ``cv2.INTER_AREA``
-    """
-
-    def __init__(self, size, interpolation=cv2.INTER_AREA):
-        assert isinstance(size, int) or (isinstance(size, Iterable) and len(size) == 2)
-        self.size = size
-        self.interpolation = interpolation
-
-    def __call__(self, img):
-        """
-        Args:
-            img (PIL Image): Image to be scaled.
-
-        Returns:
-            PIL Image: Rescaled image.
-        """
-        
-        if not torchvision.transforms.functional._is_pil_image(img):
-            raise TypeError('img should be PIL Image. Got {}'.format(type(img))) 
-            
-        if isinstance(self.size, int):
-            w, h = img.size
-            if (w <= h and w == self.size) or (h <= w and h == self.size):
-                return img
-            if w < h:
-                ow = self.size
-                oh = int(self.size * h / w)
-                return Image.fromarray(cv2.resize(np.array(img), (ow, oh), interpolation = self.interpolation))
-            else:
-                oh = self.size
-                ow = int(self.size * w / h)
-                return Image.fromarray(cv2.resize(np.array(img), (ow, oh), interpolation = self.interpolation))
-        else:
-            return Image.fromarray(cv2.resize(np.array(img), tuple(self.size[::-1]), interpolation = self.interpolation))
-
-    def __repr__(self):
-        interpolate_str = str(self.interpolation)
-        return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str)
-
-
-def my_backbone_fpn_forward(self, x):
-    x = self.body(x)
-    x = self.fpn(x)
-    for k in x.keys():
-        x[k] = nn.functional.dropout(x[k], p=.5, training=self.training)
-    return x
-
-
-def my_fpn_forward(self, x):
-    """
-    Computes the FPN for a set of feature maps.
-
-    Arguments:
-        x (OrderedDict[Tensor]): feature maps for each feature level.
-
-    Returns:
-        results (OrderedDict[Tensor]): feature maps after FPN layers.
-            They are ordered from highest resolution first.
-    """
-    # unpack OrderedDict into two lists for easier handling
-    names = list(x.keys())
-    x = list(x.values())
-
-    last_inner = self.inner_blocks[-1](x[-1])
-    results = []
-    results.append(self.layer_blocks[-1](last_inner))
-    for feature, inner_block, layer_block in zip(
-        x[:-1][::-1], self.inner_blocks[:-1][::-1], self.layer_blocks[:-1][::-1]
-    ):
-        if not inner_block:
-            continue
-        inner_lateral = inner_block(feature)
-        feat_shape = inner_lateral.shape[-2:]
-        # torch.nn.functional.interpolate is non-deterministic,
-        # see https://discuss.pytorch.org/t/non-deterministic-behavior-of-pytorch-upsample-interpolate/42842
-        # for details.
-        #inner_top_down = F.interpolate(last_inner, size=feat_shape, mode="nearest")
-        scale_y, scale_x = None, None
-        if feat_shape[0] % last_inner.shape[2] == 0:
-            scale_y = feat_shape[0] // last_inner.shape[2]
-        if feat_shape[1] % last_inner.shape[3] == 0:
-            scale_x = feat_shape[1] // last_inner.shape[3]
-        if scale_y is not None and scale_x is not None:
-            inner_top_down = last_inner[:, :, :, None, :, None].expand(-1, -1, -1, scale_y, -1, scale_x)
-            inner_top_down = inner_top_down.reshape(last_inner.size(0), last_inner.size(1),
-                                                    last_inner.size(2)*scale_y, last_inner.size(3)*scale_x)
-        else:
-            raise ValueError('cannot replace interpolate with deterministic implementation!!')
-            
-        last_inner = inner_lateral + inner_top_down
-        results.insert(0, layer_block(last_inner))
-
-    if self.extra_blocks is not None:
-        results, names = self.extra_blocks(results, x, names)
-
-    # make it back an OrderedDict
-    out = OrderedDict([(k, v) for k, v in zip(names, results)])
-
-    return out
-
-class RandomShuffleGT():
-    def __call__(self, img, target):
-        gt_idx = [i for i in range(len(target['labels'])) if target['labels'][i] == 1]
-        if len(gt_idx) == 0:
-            return img, target
-        
-        w_img, h_img = img.size
-        new_img = img.copy()
-        gt_patches = [img.crop(tuple(target['boxes'][i].int().tolist())) for i in gt_idx]
-        random.shuffle(gt_patches)
-        for gt_i, gt_patch in zip(gt_idx, gt_patches):
-            center_x = (target['boxes'][gt_i, 2] + target['boxes'][gt_i, 0]) / 2
-            center_y = (target['boxes'][gt_i, 3] + target['boxes'][gt_i, 1]) / 2
-            
-            w, h = gt_patch.size
-            if center_x - w / 2 < 0:
-                center_x = w / 2
-            elif center_x + w / 2 > w_img:
-                center_x = w_img - w / 2
-            if center_y - h / 2 < 0:
-                center_y = h / 2
-            elif center_y + h / 2 > h_img:
-                center_y = h_img - h / 2
-            
-            target['boxes'][gt_i, 0] = center_x - w / 2
-            target['boxes'][gt_i, 2] = center_x + w / 2
-            target['boxes'][gt_i, 1] = center_y - h / 2
-            target['boxes'][gt_i, 3] = center_y + h / 2
-            new_img.paste(gt_patch, tuple(target['boxes'][gt_i].int().tolist()))
-        
-        return new_img, target
-
-
-class RandomFlipBoxes():
-    
-    def __call__(self, img, target):
-        for i in range(len(target['boxes'])):
-            if target['labels'][i] == 1 and random.random() >= 0.5:
-                patch = img.crop(tuple(target['boxes'][i].int().tolist()))
-                flipped_patch = torchvision.transforms.functional.hflip(patch)
-                img.paste(flipped_patch, tuple(target['boxes'][i].int().tolist()))
-        
-        return img, target
-
 
 class FrozenBatchNorm2dWithEpsilon(torchvision.ops.misc.FrozenBatchNorm2d):
     """This class aims to make the epsilon consistent with the default value of torch.nn.BatchNorm2d"""
@@ -1328,10 +823,14 @@ class SAMOptim(torch.optim.Optimizer):
                     p=2
                )
         return norm
+    
 
-class RandomSizeCrop(torchvision.transforms.RandomResizedCrop):
-    def __init__(self, *args, **kwargs):
-        super().__init__(0, *args, **kwargs)
-    def forward(self, img):
-        i, j, h, w = self.get_params(img, self.scale, self.ratio)
-        return torchvision.transforms.functional.crop(img, i, j, h, w)
+def create_empty_label(idx):
+    labels = {}
+    bbox_tensor = torch.tensor([]).reshape(-1, 4)
+    labels['boxes'] = bbox_tensor
+    labels['labels'] = torch.tensor([]).long()
+    labels['image_id'] = torch.tensor([idx])
+    labels['area'] = torch.tensor([])
+    labels['iscrowd'] = torch.tensor([]).long()
+    return labels
