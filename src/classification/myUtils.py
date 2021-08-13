@@ -48,29 +48,21 @@ def read_label(path, column_name, split, label_only=False):
     Return:
         list: each item for the list is a list of [ACCNO (str), label (int)]
     """
-    if path.endswith('xlsx'):
-        if split is not None:
-            data = pd.read_excel(path, sheet_name=split, dtype=str)
+    data = pd.read_csv(path, dtype=str)
+    data[column_name] = pd.to_numeric(data[column_name])
+    if split is not None:
+        if 'split' in data:
+            data = data[data['split'] == split]
+        elif 'set' in data:
+            if split == 'val':
+                split = 'validation'
+            data = data[data['set'] == split]
         else:
-            data = pd.read_excel(path, dtype=str)
-        data[column_name] = pd.to_numeric(data[column_name])
-    elif path.endswith('csv'):
-        data = pd.read_csv(path, dtype=str)
-        data[column_name] = pd.to_numeric(data[column_name])
-        if split is not None:
-            if 'split' in data:
-                data = data[data['split'] == split]
-            elif 'set' in data:
-                if split == 'val':
-                    split = 'validation'
-                data = data[data['set'] == split]
-            else:
-                raise ValueError('no split column presents in the data')
+            raise ValueError('no split column presents in the data')
     if label_only:
         return data[column_name].tolist()
     
     return data[['ACCNO', column_name]].values.tolist()
-
 
 def read_image(path):
     return torchvision.transforms.functional.to_tensor(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
@@ -81,48 +73,27 @@ class ClassificationDataset(torch.utils.data.Dataset):
 
     def __init__(self,
                  task_name,
-                 blackout,
                  split,
                  transform=None,
-                 blackout_margin=25,
-                 lung_crop_fill=0,
                  multitask=False,
                  more_info=False,
-                 equalize=False,
-                 standardize=False,
                  return_idx=False,
-                 exclude_accno=None,
-                 removing_idxes=None,
                  preprocess_resize_1024=True):
         """
         Args:
             task_name: task name defined in metadata.yaml
-            blackout: to blackout the area outside the lung.
-                If set to True, blackout file must be provided and
-                given in the metadata.
             split (str): 'train', 'val' or 'test'
             transform (callable, optional): Optional transform to be applied
                 on an image.
-            equalize: Redundant, please always set this to False. Use
-                ClassificationDatasetWithEqualizeAndStandardize
-                for equalization.
-            standardize: Redundant, please always set this to False. Use
-                ClassificationDatasetWithEqualizeAndStandardize
-                for equalization.
-            blackout_margin: the margin added to lung box to blackout
             multitask: if True, task name will be returned (so that one can
                 distinguish which multi-task head to be trained when loading
                 a batch of images)
             more_info: If True, image path and ACCNO will also be returned
         """
-        if exclude_accno is None:
-            exclude_accno = []
             
         self.more_info = more_info
         self.task_name = task_name
         self.transform = transform
-        self.blackout_margin = blackout_margin
-        self.lung_crop_fill = lung_crop_fill
         self.multitask = multitask
         self.return_idx = return_idx
         self.file_extension = metadata[task_name].get('file_extension', None) or 'png'
@@ -146,12 +117,7 @@ class ClassificationDataset(torch.utils.data.Dataset):
             self.data = [
                 x for x in self.data if (x[0] + '.' + self.file_extension) not in ignore_set
             ]
-        if removing_idxes is not None:
-            self.data = [d for i, d in enumerate(self.data) if i not in removing_idxes]
-        if exclude_accno:
-            self.data = [x for x in self.data if x[0] not in exclude_accno]
 
-        self.blackout = blackout
         print(f'len dataset: {len(self)}')
         self.preprocess_resize_1024 = preprocess_resize_1024
         self.split = split
@@ -222,62 +188,6 @@ class MultiTaskAggregatedClassificationDataset(torch.utils.data.Dataset):
             out_item[-1] = idx
         out_item.append(self.label_mask[idx])
         return out_item # img, labels, ..., label_mask
-
-
-def collate_transforms(transform):
-    """
-        Return:
-            color jitter transform if exist
-            transforms other than color jitter if exist
-    """
-    if not isinstance(transform, torchvision.transforms.Compose):
-        if transform is None:
-            return (torchvision.transforms.Compose([]),
-                    torchvision.transforms.Compose([]))
-        if isinstance(transform, torchvision.transforms.ColorJitter):
-            return transform, torchvision.transforms.Compose([])
-        return torchvision.transforms.Compose([]), transform
-    cj_trans = torchvision.transforms.Compose([
-        x for x in transform.transforms
-        if isinstance(x, torchvision.transforms.ColorJitter)
-    ])
-    other_trans = torchvision.transforms.Compose([
-        x for x in transform.transforms
-        if not isinstance(x, torchvision.transforms.ColorJitter)
-    ])
-    return cj_trans, other_trans
-
-
-def random_scaled_crop_collate_decorator(org_collate=torch.utils.data._utils.collate.default_collate, scale=(0.08, 1)):
-    """crop a patch for each image in the batch within specified scale range.
-    
-    Args:
-        org_collate: collate function that returns a tuple like (images, *other_info),
-            where images is a tensor with shape (batch, channel, height, width)
-        scale (tuple): scale range.
-    """
-    def random_scaled_crop_collate(datalist):
-        try:
-            images, *other_info = org_collate(datalist)
-            has_other_info = True
-        except:
-            images = org_collate(datalist)
-            has_other_info = False
-        
-        new_images = []
-        height, width = images.shape[-2:]
-        target_ratio = random.uniform(*scale)
-        w = int(round(width * target_ratio))
-        h = int(round(height * target_ratio))
-        i = random.randint(0, height - h)
-        j = random.randint(0, width - w)
-        for image in images:
-            new_images.append(image[:, i:i + h, j:j + w])
-        if has_other_info:
-            return [torch.stack(new_images)] + other_info
-        return torch.stack(new_images)
-    return random_scaled_crop_collate
-
 
 def check_all_images_exist(image_folder, label_data, ignore_not_found=False, extension='png'):
     """
@@ -784,80 +694,6 @@ def load_state_dict_reviser_not_strict(func):
     return load_state_dict_not_strict
 
 
-class CV2Resize():
-    """Resize the input PIL Image to the given size with cv2.
-
-    Args:
-        size (sequence or int): Desired output size. If size is a sequence like
-            (h, w), output size will be matched to this. If size is an int,
-            smaller edge of the image will be matched to this number.
-            i.e, if height > width, then image will be rescaled to
-            (size * height / width, size)
-        interpolation (int, optional): Desired interpolation. Default is
-            ``cv2.INTER_LINEAR``
-    """
-
-    def __init__(self, size, interpolation=cv2.INTER_LINEAR):
-        assert isinstance(size, int) or (isinstance(size, Iterable) and len(size) == 2)
-        self.size = size
-        self.interpolation = interpolation
-
-    def __call__(self, img):
-        """
-        Args:
-            img (PIL Image): Image to be scaled.
-
-        Returns:
-            PIL Image: Rescaled image.
-        """
-        
-        if not torchvision.transforms.functional._is_pil_image(img):
-            raise TypeError('img should be PIL Image. Got {}'.format(type(img))) 
-            
-        if isinstance(self.size, int):
-            w, h = img.size
-            if (w <= h and w == self.size) or (h <= w and h == self.size):
-                return img
-            if w < h:
-                ow = self.size
-                oh = int(self.size * h / w)
-                return Image.fromarray(cv2.resize(np.array(img), (ow, oh), interpolation = self.interpolation))
-            else:
-                oh = self.size
-                ow = int(self.size * w / h)
-                return Image.fromarray(cv2.resize(np.array(img), (ow, oh), interpolation = self.interpolation))
-        else:
-            return Image.fromarray(cv2.resize(np.array(img), tuple(self.size[::-1]), interpolation = self.interpolation))
-
-    def __repr__(self):
-        interpolate_str = str(self.interpolation)
-        return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str)
-
-
-class RandomScaledCrop(torchvision.transforms.RandomResizedCrop):
-    """Crop a patch with a range of random scale without resizing after cropping.
-    
-    A crop of random size (default: of 0.08 to 1.0) of the original size and a random
-    aspect ratio (default: of 3/4 to 4/3) of the original aspect ratio is made.
-
-    Args:
-        size: No effect
-        scale: range of size of the origin size cropped
-        ratio: range of aspect ratio of the origin aspect ratio cropped
-        interpolation: Default: PIL.Image.BILINEAR
-    """
-    def __call__(self, img):
-        """
-        Args:
-            img (PIL Image): Image to be cropped and resized.
-
-        Returns:
-            PIL Image: Randomly cropped and resized image.
-        """
-        i, j, h, w = self.get_params(img, self.scale, self.ratio)
-        return torchvision.transforms.functional.crop(img, i, j, h, w)
-
-
 class FrozenBatchNorm2dWithEpsilon(torchvision.ops.misc.FrozenBatchNorm2d):
     """This class aims to make the epsilon consistent with the default value of torch.nn.BatchNorm2d"""
     
@@ -865,40 +701,6 @@ class FrozenBatchNorm2dWithEpsilon(torchvision.ops.misc.FrozenBatchNorm2d):
         if 'eps' not in kwargs:
             kwargs['eps'] = 1e-5
         super().__init__(*args, **kwargs)
-
-
-def change_layer(model, source_module, target_module, params_map={}, state_dict_map={}):
-    """ To change specific type of layers to another one. e.g. BatchNorm2d to FrozenBatchNorm2d
-    
-    Args:
-        model (nn.Module): The model to alter
-        source_module (nn.Module Class): the module class to be replaced. It will be used by checking
-            if any module in the model is its instance.
-        target_module (nn.Module Class): The constructor that will replace all source_module
-        params_map (Dict[str: str]): The dict keys are the attributes of the source_module and the
-            dict values are the parameter name to construct target_module
-        state_dict_map (Dict[str: str]): The dict keys are the state dict key name of the source_module
-            and the dict values are the state dict key name of the target_module to be loaded.
-    """
-    def check_children(model):
-        for name, module in model.named_children():
-            if isinstance(module, source_module):
-                state_dict_to_load = {(k if k not in state_dict_map else state_dict_map[k]): v for k, v in module.state_dict().items()}
-                setattr(model, name, target_module(**{new_param: getattr(module, org_param) for org_param, new_param in params_map.items()}))
-                getattr(model, name).load_state_dict(state_dict_to_load, strict=False)
-            check_children(getattr(model, name))
-    check_children(model)
-
-
-def freeze_all(nn_module):
-    for p in nn_module.parameters():
-        p.requires_grad_(False)
-    change_layer(nn_module,
-                 torch.nn.BatchNorm2d,
-                 torchvision.ops.misc.FrozenBatchNorm2d,
-                 params_map={'num_features':'num_features', 'eps':'eps'}
-                )
-
 
 class SAMOptim(torch.optim.Optimizer):
     """Code credit: https://github.com/davda54/sam/blob/main/sam.py
@@ -1041,22 +843,6 @@ class RandAugmentPT():
     def __call__(self, pt_img):
         pil_img = torchvision.transforms.functional.to_pil_image(pt_img)
         return torchvision.transforms.functional.to_tensor(self.ra(pil_img))
-
-class SoftCrossEntropyLoss():
-    def __init__(self, p_0):
-        self.p_0 = p_0
-    
-    def __call__(self, preds, targets):
-        # preds (N, C, ...)
-        # targets (N, ...)
-        C = preds.shape[1]
-        span_targets = torch.full(preds.shape, (1 - self.p_0) / (C - 1), device=targets.device)
-        idxes = [torch.tensor(range(shape))[..., None].repeat(1, torch.tensor(targets.shape[i + 1:]).prod()).flatten() if i != len(targets.shape) - 1 else torch.tensor(range(shape)) for i, shape in enumerate(targets.shape)]
-        idxes = [x.repeat(round(len(idxes[0]) / len(x))) for x in idxes]
-        idxes.insert(1, targets.flatten())
-        span_targets[idxes] = self.p_0
-        return -(torch.nn.functional.log_softmax(preds, dim=1) * span_targets).sum(dim=1).mean()
-
 
 class BCEWithLogitsCategoricalLoss():
     def __init__(self, p_0=1):

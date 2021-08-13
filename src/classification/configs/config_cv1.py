@@ -1,6 +1,6 @@
 args_dict = dict()
 
-args_dict['task_name'] = 'covid19_kaggle_train_cv_5_0'
+args_dict['task_name'] = 'covid19_kaggle_train_cv_5_1'
 args_dict['choose_best'] = 'ap'
 args_dict['CUDA_VISIBLE_DEVICES'] = '0'
 args_dict['random_seed'] = None # None

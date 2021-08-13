@@ -19,7 +19,6 @@ import torch
 import torch.utils.data
 import torchvision
 from torch import nn
-from torch.optim.swa_utils import AveragedModel
 from torchvision import transforms
 import timm
 
@@ -79,11 +78,9 @@ def train_one_epoch(
 
     if args_dict['warmup_lr'] and epoch == 0:
         base_lr = optimizer.param_groups[0]['lr']
-        warmup_iter = min(round(len(data_loader) * args_dict['dataset_shrinking_factor']), 1000)
+        warmup_iter = min(round(len(data_loader)), 1000)
         
     for i, (image, target) in enumerate(metric_logger.log_every(data_loader, print_freq,header)):
-        if i > round(len(data_loader) * args_dict['dataset_shrinking_factor']):
-            break
         if args_dict['warmup_lr'] and epoch == 0 and i < warmup_iter:
             optimizer.param_groups[0]['lr'] = base_lr * (i + 1) / warmup_iter
         
@@ -95,7 +92,7 @@ def train_one_epoch(
         if args_dict['SAM']:
             with torch.cuda.amp.autocast(enabled=args_dict['amp']):
                 output = model(image)
-                loss = criterion(output, target) / args_dict['accumulate_grad_batches']
+                loss = criterion(output, target)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             scaler.step(optimizer, first_step=True)
@@ -107,19 +104,18 @@ def train_one_epoch(
                 loss = criterion(output, target)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            scaler.step(optimizer, first_step=False, update=(i % args_dict['accumulate_grad_batches'] == 0))
+            scaler.step(optimizer, first_step=False, update=True)
             scaler.update()
             optimizer.zero_grad(set_to_none=True)
             
         else:
             with torch.cuda.amp.autocast(enabled=args_dict['amp']):
                 output = model(image)
-                loss = criterion(output, target) / args_dict['accumulate_grad_batches']
+                loss = criterion(output, target)
             scaler.scale(loss).backward()
-            if i % args_dict['accumulate_grad_batches'] == 0:
-                scaler.step(optimizer)
-                scaler.update()
-                optimizer.zero_grad(set_to_none=True)
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad(set_to_none=True)
 
         batch_size = image.shape[0]
         metric_logger.update(loss=loss.item(),
@@ -165,10 +161,7 @@ def evaluate(model, criterion, data_loader, device, print_freq=10):  # pylint: d
             all_idx.append(idxes)
 
             loss = criterion(output, target)
-            acc1, = utils.accuracy(output, target, topk=(1,))
-            batch_size = image.shape[0]
             metric_logger.update(loss=loss.item())
-            metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
         all_idx = torch.cat(all_idx)
 
     # gather the stats from all processes (on different GPUs)
@@ -182,18 +175,12 @@ def evaluate(model, criterion, data_loader, device, print_freq=10):  # pylint: d
     ap = myUtils.get_ap(scores_sm, targets)
     print(f'* Auc: {auc}')
     print(f'* AP: {ap}')
-    if args_dict['metric_class'] == -1:
-        final_ap = ap.mean().item()
-        final_auc = auc.mean().item()
-    else:
-        final_ap = ap[args_dict['metric_class']].item()
-        final_auc = auc[args_dict['metric_class']].item()
+    final_ap = ap.mean().item()
+    final_auc = auc.mean().item()
 
-    print(' * Acc@1 {top1.global_avg:.3f}'.format(top1=metric_logger.acc1))
-    return metric_logger.acc1.global_avg, final_ap, final_auc
+    return final_ap, final_auc
 
 
-# +
 # distributed training parameters
 parser = argparse.ArgumentParser(description='PyTorch Classification Training')
 
@@ -212,7 +199,6 @@ utils.init_distributed_mode(args)
 # The style of printing is used to set hidden content on GitLab.
 args_dict['name'] = 'args_dict'
 print(f'{args_dict["name"]}:  ')
-print('<details><summary>Training config</summary><pre>')
 readable_str = myUtils.print_dict_readable(args_dict)
 if utils.is_main_process():
     with open(config_file, 'w') as file:
@@ -221,25 +207,10 @@ print('')
 print('output_dir: ')
 print(output_dir)
 print('')
-print('gpu_info:')
-print(gpu_info.decode('utf-8'))
-print('</pre></details>')
-print('<details><summary>Learning curve</summary>')
-print('</details>')
-print('')
-print('all configs:  ')
-print(args)
 
 print("Loading data")
 
-assert not (args_dict['pretrained'] is not None and args_dict['finetune']), "Finetune and pretrained can be applied exclusively."
-
-if args_dict['finetune']:
-    checkpoint = torch.load(args_dict['finetune_model_file'], map_location='cpu')
-    norm_mean = checkpoint.get('norm_mean', [0.485, 0.456, 0.406])
-    norm_std = checkpoint.get('norm_std', [0.229, 0.224, 0.225])
-    args_dict['channel'] = checkpoint['args_dict'].get('channel', 3)
-elif args_dict['pretrained'] is not None and args_dict['pretrained'] != 'imagenet':
+if args_dict['pretrained'] is not None and args_dict['pretrained'] != 'imagenet':
     checkpoint = torch.load(args_dict['pretrained'], map_location='cpu')
     norm_mean = checkpoint.get('normalize_mean', [0.485, 0.456, 0.406])
     norm_std = checkpoint.get('normalize_std', [0.229, 0.224, 0.225])
@@ -254,26 +225,8 @@ elif args_dict['pretrained'] == 'imagenet':
     else:
         raise ValueError(f'Not known how to set normalizations '
                          f'for {args_dict["model_name"]} models.')
-    if args_dict['channel'] != 3:
-        assert args_dict['channel'] == 1
-        org_norm_mean = norm_mean
-        org_norm_std = norm_std
-        norm_mean = [0.5]
-        norm_std = [0.5]
-elif args_dict['pretrained'] is None:
-    if args_dict['channel'] == 3:
-        norm_mean = [0.485, 0.456, 0.406]
-        norm_std = [0.229, 0.224, 0.225]
-    else:
-        norm_mean = [0.5 for _ in range(args_dict['channel'])]
-        norm_std = [0.5 for _ in range(args_dict['channel'])]
     
 normalize = transforms.Normalize(mean=norm_mean, std=norm_std)
-
-# +
-if args_dict['restrict_square_resize']:
-    args_dict['model_input_size'] = (args_dict['model_input_size'],
-                                     args_dict['model_input_size'])
 
 # Set Training transforms
 transform_train_list = []
@@ -334,52 +287,28 @@ transform_train = transforms.Compose(transform_train_list)
 
 # Load Data
 print("Loading training data")
-if args_dict['shapleys'] is not None:
-    shapleys = torch.load(args_dict['shapleys'], map_location='cpu')
-    if isinstance(args_dict['removing_by_shapley'], float):
-        removing_idxes = set(shapleys.argsort()[:round(len(shapleys) * args_dict['removing_by_shapley'])].tolist())
-    elif args_dict['removing_by_shapley'] == 'neg':
-        removing_idxes = set((shapleys < 0).nonzero(as_tuple=True)[0].tolist())
     
 dataset_train = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
-    blackout=args_dict['train_blackout'],
     split='train',
     transform=transform_train,
-    equalize=args_dict['equalize'],
-    standardize=args_dict['standardize'],
-    removing_idxes=removing_idxes if args_dict['shapleys'] else None,
 )
 
 print("Loading validation data")
 dataset_val = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
-    blackout=False,
     split='val',
     transform=transform_test,
-    equalize=args_dict['equalize'],
-    standardize=args_dict['standardize'],
     return_idx=True,
 )
     
 print("Loading training data for evaluation")
 dataset_train_evaluate = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
-    blackout=False,
     split='train',
     transform=transform_test,
-    equalize=args_dict['equalize'],
-    standardize=args_dict['standardize'],
     return_idx=True,
-    removing_idxes=removing_idxes if args_dict['shapleys'] else None,
 )
-if args_dict['dataset_shrinking_factor'] != 1.:
-    torch.manual_seed(42)
-    dataset_train_evaluate = torch.utils.data.Subset(
-        dataset_train_evaluate,
-        torch.randperm(len(dataset_train_evaluate))
-        [:int(len(dataset_train_evaluate) * args_dict['dataset_shrinking_factor'])].tolist())
-
 print("Create data loaders")
 if args.distributed:
     train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -392,9 +321,6 @@ else:
     val_sampler = torch.utils.data.SequentialSampler(dataset_val)
     train_evaluate_sampler = torch.utils.data.SequentialSampler(
         dataset_train_evaluate)
-if args_dict['aug_sample_multiplier'] != 1:
-    train_sampler = myUtils.sample_multiplier(train_sampler, args_dict['aug_sample_multiplier'])
-
 data_loader_train = torch.utils.data.DataLoader(
     dataset_train,
     batch_size=args_dict['batch_size'],
@@ -443,11 +369,6 @@ if args_dict['use_focal_loss']:
                                   alpha=args_dict['FL_alpha'],
                                   suppress=args_dict['FL_suppress'],
                                  )
-elif args_dict['class_weight'] is not None:
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor( # pylint: disable=not-callable
-        args_dict['class_weight']).to(device))
-elif args_dict['soft_label'] != 1.0:
-    criterion = myUtils.SoftCrossEntropyLoss(args_dict['soft_label'])
 elif args_dict['use_sigmoid']:
     criterion = myUtils.BCEWithLogitsCategoricalLoss(args_dict['soft_label'])
 
@@ -478,37 +399,20 @@ if args.distributed:
     model_without_ddp = model.module
 
 start_epoch = 0
-
-if args_dict['cosine_lr']:
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args_dict['epochs'])
-
-if args_dict['finetune']:
-    model_without_ddp.load_state_dict(checkpoint['model'])
-    if args_dict['load_optim']:
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        if checkpoint.get('scaler', None) is not None:
-            scaler.load_state_dict(checkpoint['scaler'])
-        if checkpoint.get('lr_scheduler', None) is not None:
-            lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         
 print("Start training")
 start_time = time.time()
 for epoch in range(start_epoch, args_dict['epochs']):
-    if epoch in args_dict['epoch_step_lr']:
-        for param_group in optimizer.param_groups:
-            param_group['lr'] /= 10
     if args.distributed:
         train_sampler.set_epoch(epoch)
     train_one_epoch(model, criterion, optimizer, data_loader_train, device,
                     epoch, 10, scaler)
-    if args_dict['cosine_lr']:
-        lr_scheduler.step()
-    val_acc1, val_ap, val_auc = evaluate(model,
+    val_ap, val_auc = evaluate(model,
                                 criterion,
                                 data_loader_val,
                                 device=device)
     if epoch == start_epoch or (epoch + start_epoch) % 5 == 4:
-        train_acc1, train_ap, train_auc = evaluate(model,
+        train_ap, train_auc = evaluate(model,
                                         criterion,
                                         data_loader_train_evaluate,
                                         device=device)
@@ -516,8 +420,6 @@ for epoch in range(start_epoch, args_dict['epochs']):
         # save model
         checkpoint = {
             'model':model_without_ddp.state_dict(),
-            'lr_scheduler':
-                lr_scheduler.state_dict() if args_dict['cosine_lr'] else None,
             'scaler':
                 scaler.state_dict(),
             'epoch':
@@ -526,8 +428,6 @@ for epoch in range(start_epoch, args_dict['epochs']):
                 args_dict,
             'args':
                 args,
-            'val_acc':
-                val_acc1,
             'val_ap':
                 val_ap,
             'val_auc':
@@ -537,9 +437,7 @@ for epoch in range(start_epoch, args_dict['epochs']):
             'norm_mean': norm_mean,
             'norm_std': norm_std,
         }
-        if args_dict['choose_best'] == 'acc':
-            metric_value = val_acc1
-        elif args_dict['choose_best'] == 'ap':
+        if args_dict['choose_best'] == 'ap':
             metric_value = val_ap
         elif args_dict['choose_best'] == 'auc':
             metric_value = val_auc
