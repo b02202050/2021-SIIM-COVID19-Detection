@@ -55,6 +55,7 @@ dataset/
 │   ├── CheXpert_Pneumonia_split_withpatid.csv
 │   ├── CheXpert_Pneumothorax_split_withpatid.csv
 │   ├── CheXpert_Support_Devices_split_withpatid.csv
+│   ├── CheXpert_task_map_to_NIH.txt
 │   ├── make_image_symlink.py
 │   ├── train/
 │   │   └── [64540 folders]
@@ -168,7 +169,6 @@ dataset/
 │   ├── nih_Pleural_Thickening_train_val_split_withpatid.csv
 │   ├── nih_Pneumonia_train_val_split_withpatid.csv
 │   ├── nih_Pneumothorax_train_val_split_withpatid.csv
-│   ├── NIH_task_map_to_our_name.txt
 │   ├── NIHCC_CXR14/
 │   │   └── *.png
 │   ├── test_list.txt
@@ -178,6 +178,15 @@ dataset/
 │   │   └── MIDRC-RICORD/
 │   │       └── *.jpg
 │   └── ricord-covid19-xray-positive-tests_split.csv
+├── rsna-pneumonia-detection-challenge/
+│   ├── dcm2png.py
+│   ├── png_images/
+│   │   └── *.png
+│   ├── stage_2_test_images/
+│   │   └── *.dcm
+│   ├── stage_2_train_images/
+│   │   └── *.dcm
+│   └── stage_2_train_labels_string_format_split.csv
 └── siim-covid19-detection/
     │   └── dcm2png-checkpoint.py
     ├── dcm2png.py

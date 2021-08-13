@@ -1,6 +1,35 @@
 pneumonia_RSNA:
-    read_label: data.labels.label_reader.read_label_csv_labels_for_model_n_class
+    read_label: label_reader.read_label_csv_labels_for_model_n_class
     label_file: ../../dataset/rsna-pneumonia-detection-challenge/stage_2_train_labels_string_format_split.csv
     num_classes: 2
     image_folder: ../../dataset/rsna-pneumonia-detection-challenge/png_images
-    blackout_bbox_file: 
+
+covid19_kaggle_train_cv_5_0:
+    read_label: label_reader.read_label_csv_labels_for_model_n_class
+    label_file: ../../dataset/siim-covid19-detection/train_detection_labels_with_split_for_1024_cv_5_0.csv
+    num_classes: 2
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+
+covid19_kaggle_train_cv_5_1:
+    read_label: label_reader.read_label_csv_labels_for_model_n_class
+    label_file: ../../dataset/siim-covid19-detection/train_detection_labels_with_split_for_1024_cv_5_1.csv
+    num_classes: 2
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+
+covid19_kaggle_train_cv_5_2:
+    read_label: label_reader.read_label_csv_labels_for_model_n_class
+    label_file: ../../dataset/siim-covid19-detection/train_detection_labels_with_split_for_1024_cv_5_2.csv
+    num_classes: 2
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+
+covid19_kaggle_train_cv_5_3:
+    read_label: label_reader.read_label_csv_labels_for_model_n_class
+    label_file: ../../dataset/siim-covid19-detection/train_detection_labels_with_split_for_1024_cv_5_3.csv
+    num_classes: 2
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
+
+covid19_kaggle_train_cv_5_4:
+    read_label: label_reader.read_label_csv_labels_for_model_n_class
+    label_file: ../../dataset/siim-covid19-detection/train_detection_labels_with_split_for_1024_cv_5_4.csv
+    num_classes: 2
+    image_folder: ../../dataset/siim-covid19-detection/png_1024_symlinks
