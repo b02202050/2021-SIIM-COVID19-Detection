@@ -1,3 +1,5 @@
 pydicom==2.1.2
 ipywidgets==7.5.1
 timm==0.4.12
+elasticdeform==0.4.7
+albumentations==1.0.3

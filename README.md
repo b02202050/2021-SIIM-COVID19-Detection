@@ -28,15 +28,17 @@ $ python make_image_symlink.py
 * Download [kaggle_ricord_covid19_xray_positive_tests](https://www.kaggle.com/raddar/ricord-covid19-xray-positive-tests) then extract to ./dataset/ricord-covid19-xray-positive-tests
 * Download [CXR14](https://nihcc.app.box.com/v/ChestXray-NIHCC) then extract to ./dataset/NIHCC_CXR14/NIHCC_CXR14
 * Download [CheXpert](https://stanfordmlgroup.github.io/competitions/chexpert/) then extract to ./dataset/CheXpert-v1.0/
+* Download [pneumonia_RSNA](https://www.kaggle.com/c/rsna-pneumonia-detection-challenge/data) then extract to ./dataset/rsna-pneumonia-detection-challenge/
 
 ```
-$ cd dataset/chest-xray-covid19-pneumonia && make_image_symlink.py && cd -
-$ cd dataset/covidx-cxr2 && unify_file_extensions.py && make_image_symlink.py && cd -
-$ cd dataset/chest-xray-pneumonia && make_image_symlink.py && cd -
-$ cd dataset/curated-chest-xray-image-dataset-for-covid19 && make_image_symlink.py && cd -
-$ cd datasetcovid19-xray-two-proposed-databases && unify_file_extensions.py && make_image_symlink.py && cd -
-$ cd dataset/curated-chest-xray-image-dataset-for-covid19 && make_image_symlink.py && cd -
-$ cd dataset/CheXpert-v1.0 && make_image_symlink.py && cd -
+$ cd dataset/chest-xray-covid19-pneumonia && python make_image_symlink.py && cd -
+$ cd dataset/covidx-cxr2 && python unify_file_extensions.py && python make_image_symlink.py && cd -
+$ cd dataset/chest-xray-pneumonia && python make_image_symlink.py && cd -
+$ cd dataset/curated-chest-xray-image-dataset-for-covid19 && python make_image_symlink.py && cd -
+$ cd datasetcovid19-xray-two-proposed-databases && python unify_file_extensions.py && python make_image_symlink.py && cd -
+$ cd dataset/curated-chest-xray-image-dataset-for-covid19 && python make_image_symlink.py && cd -
+$ cd dataset/CheXpert-v1.0 && python make_image_symlink.py && cd -
+$ cd dataset/rsna-pneumonia-detection-challenge && python dcm2png.py && cd - # This preprocessing is done very early before the competition. You can use more correct processing (But may not reproduce my results.)
 ```
 
 
@@ -67,7 +69,6 @@ If the patient ID is present, we split the dataset by it.
 
 
 ## Train
-*Training configurations are set in the code instead of other config files. For example, set `args_dict['CUDA_VISIBLE_DEVICES'] = '0,1'` to use the first two GPUs.*
 
 #### Multi-task classification pretraining
 ```
@@ -80,7 +81,11 @@ $ cd -
 #### SIIM Covid19 study-level training
 ```
 $ cd src/classification
-$ python train_classification.py
+$ python train_classification.py configs/config_cv0.py
+$ python train_classification.py configs/config_cv1.py
+$ python train_classification.py configs/config_cv2.py
+$ python train_classification.py configs/config_cv3.py
+$ python train_classification.py configs/config_cv4.py
 $ cd -
 ```
 

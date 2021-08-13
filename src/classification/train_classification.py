@@ -2,10 +2,6 @@
     Code for training a classifier.
     This code is forked from
         vision/references/classification/train.py of pytorch github
-    non-configurable settings include:
-        #step lr scheduler
-        more information about hard-coding please refer to the configuration
-            description
 """
 
 from __future__ import print_function
@@ -31,107 +27,23 @@ import deterministic_setting  # pylint: disable=unused-import
 import myUtils
 import utils
 
-args_dict = dict()
+parser = argparse.ArgumentParser()
+parser.add_argument('config_file', type=str)
 
-# ## Train Config
+with open(parser.parse_args().config_file, 'r') as f:
+    exec(f.read(), globals())
 
-# +
-args_dict['task_name'] = 'covid19_kaggle_train_cv_5_0'
-args_dict['choose_best'] = 'ap'
-args_dict['metric_class'] = -1
-args_dict['CUDA_VISIBLE_DEVICES'] = '0'
-args_dict['channel'] = 3 # 3
-args_dict['random_seed'] = None # None
-
-args_dict['pretrained'] = 'pretrained/pretrained_run1_transferred.pth'
-
-args_dict['sync_bn'] = False
-args_dict['optimizer'] = 'Adam'
-args_dict['epoch_step_lr'] = []
-args_dict['warmup_lr'] = True
-args_dict['cosine_lr'] = False
-args_dict['weight_decay'] = 0  # 0
-args_dict['batch_size'] = 16
-args_dict['aug_sample_multiplier'] = 1 # 1
-args_dict['accumulate_grad_batches'] = 1
-args_dict['lr'] = 1e-3 / 256 * args_dict['batch_size'] * len(args_dict['CUDA_VISIBLE_DEVICES'].split(',') * args_dict['accumulate_grad_batches'])
-
-args_dict['epochs'] = 20
-args_dict['amp'] = True
-args_dict['model_name'] = 'tf_efficientnet_b7_ns'
-args_dict['model_input_size'] = 512
-args_dict['output_dir'] = f"work_dir/{args_dict['task_name']}_run1"
-
-# Exclusive args (Please note that some are mutually exclusive)
-args_dict['class_weight'] = None
-args_dict['use_focal_loss'] = True
-args_dict['FL_suppress'] = 'hard'
-args_dict['FL_alpha'] = 0.5
-args_dict['FL_gamma'] = 0.5
-args_dict['soft_label'] = 1.0
-args_dict['use_sigmoid'] = True
-
-
-args_dict['train_blackout'] = False
-args_dict['dataset_shrinking_factor'] = 1.0
-args_dict['fix_backbone'] = False
-args_dict['SWA'] = False
-args_dict['SWAG_diag'] = False
-args_dict['SAM'] = True
-args_dict['shapleys'] = None # None, 'work_dir/calc_shapley/trial_2021_05_08_12_05_54_872714/unbiased_shapleys.pth'
-args_dict['removing_by_shapley'] = 0.1 # ratios or 'neg'
-args_dict['final_pool'] = 'avg' # avg, max, multipcam, pcam, softmax
-
-args_dict['augmentation_prob_multiplier'] = 0.5
-args_dict['flip'] = True
-args_dict['flip_vertical'] = True
-args_dict['shift'] = True
-args_dict['shift_mode'] = 'repeat'
-args_dict['color_jitter'] = True
-args_dict['color_jitter_factor'] = {'brightness': 0.4, 'contrast': 0.4}
-args_dict['rotation'] = True
-args_dict['rotation_degree'] = 25
-args_dict['resize'] = False
-args_dict['aspect_ratio'] = False
-args_dict['blur'] = False
-args_dict['noise'] = False
-args_dict['equalize'] = False
-args_dict['standardize'] = False
-args_dict['restrict_square_resize'] = False
-args_dict['RandomResizedCrop'] = True
-args_dict['random_perspective'] = True
-args_dict['elastic_deformation'] = True
-args_dict['RandAugment'] = True
-
-args_dict['finetune'] = False
-args_dict['load_optim'] = False
-args_dict['finetune_model_file'] = ''
-args_dict['tag'] = ''
-
-try:
-    args_dict['execution_file'] = os.path.basename(__file__)
-except:
-    pass
 deterministic_setting.set_deterministic(seed=args_dict['random_seed'])
 
 # config cuda
 os.environ["CUDA_VISIBLE_DEVICES"] = args_dict['CUDA_VISIBLE_DEVICES']
 device_str = 'cuda' if torch.cuda.is_available() else 'cpu'
 device = torch.device(device_str)
-gpu_info = subprocess.run(
-    'nvidia-smi --query-gpu=index,name,driver_version --format=csv',
-    shell=True,
-    stdout=subprocess.PIPE,
-    check=True).stdout
 
 output_dir = args_dict['output_dir']
 utils.mkdir(output_dir)
 
 # prepare log file
-# log_file is for saving information of accuracy
-log_file = os.path.join(output_dir, 'log.txt')
-if os.path.isfile(log_file):
-    os.remove(log_file)
 log_ap_file = os.path.join(output_dir, 'log_ap.txt')
 if os.path.isfile(log_ap_file):
     os.remove(log_ap_file)
@@ -624,10 +536,6 @@ for epoch in range(start_epoch, args_dict['epochs']):
                 str(datetime.timedelta(seconds=int(time.time() - start_time))),
             'norm_mean': norm_mean,
             'norm_std': norm_std,
-            'env': {
-                'gpu_info': gpu_info.decode('ascii'),
-                'CUDA_VISIBLE_DEVICES': os.environ['CUDA_VISIBLE_DEVICES'],
-            }
         }
         if args_dict['choose_best'] == 'acc':
             metric_value = val_acc1
@@ -644,12 +552,6 @@ for epoch in range(start_epoch, args_dict['epochs']):
 
         # write log
         if utils.is_main_process():
-            with open(log_file, 'a') as file:
-                if epoch == start_epoch or (epoch + start_epoch) % 5 == 4:
-                    file.write(
-                        ' '.join([str(val_acc1), str(train_acc1)]) + '\n')
-                else:
-                    file.write(str(val_acc1) + '\n')
             with open(log_ap_file, 'a') as file:
                 if epoch == start_epoch or (epoch + start_epoch) % 5 == 4:
                     file.write(' '.join([str(val_ap), str(train_ap)]) + '\n')

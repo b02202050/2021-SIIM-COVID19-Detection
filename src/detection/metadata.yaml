@@ -1,0 +1,6 @@
+pneumonia_RSNA:
+    read_label: data.labels.label_reader.read_label_csv_labels_for_model_n_class
+    label_file: ../../dataset/rsna-pneumonia-detection-challenge/stage_2_train_labels_string_format_split.csv
+    num_classes: 2
+    image_folder: ../../dataset/rsna-pneumonia-detection-challenge/png_images
+    blackout_bbox_file: 
