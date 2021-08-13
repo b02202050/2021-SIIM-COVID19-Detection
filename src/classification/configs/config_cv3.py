@@ -3,16 +3,17 @@ args_dict = dict()
 args_dict['task_name'] = 'covid19_kaggle_train_cv_5_3'
 args_dict['choose_best'] = 'ap'
 args_dict['CUDA_VISIBLE_DEVICES'] = '0'
-args_dict['random_seed'] = None # None
+args_dict['random_seed'] = None  # None
 
 args_dict['pretrained'] = 'pretrained/pretrained_run1_transferred.pth'
 
 args_dict['sync_bn'] = False
 args_dict['optimizer'] = 'Adam'
 args_dict['warmup_lr'] = True
-args_dict['weight_decay'] = 0 
+args_dict['weight_decay'] = 0
 args_dict['batch_size'] = 16
-args_dict['lr'] = 1e-3 / 256 * args_dict['batch_size'] * len(args_dict['CUDA_VISIBLE_DEVICES'].split(','))
+args_dict['lr'] = 1e-3 / 256 * args_dict['batch_size'] * len(
+    args_dict['CUDA_VISIBLE_DEVICES'].split(','))
 
 args_dict['epochs'] = 20
 args_dict['amp'] = True

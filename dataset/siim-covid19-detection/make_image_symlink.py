@@ -1,6 +1,7 @@
 import os
-import torch
 from multiprocessing import Pool
+
+import torch
 from tqdm import tqdm
 
 png_root_folder = 'png_1024'

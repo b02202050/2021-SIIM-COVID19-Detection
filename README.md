@@ -150,13 +150,13 @@ Simply replace `args_dict['cls']['ckpt_paths']` and `args_dict['det']['ckpt_path
 
 The LB scores of ensemble models are shown below. For each TTA, only horizontal flip is performed.
 
-|                                     | Public LB/Private LB |
-| ----------------------------------- | -------------------- |
-| w/o TTA w/o fixed feature attention | 0.633/0.621          |
-| w/o TTA                             | 0.633/0.625          |
-| study-level TTA                     | 0.634/0.626          |
-| image-level TTA                     | 0.635/0.627          |
-| both TTA                            | 0.636/0.628          |
+| Study-level ensemble + Image-level ensemble | Public LB | Private LB |
+| ------------------------------------------- | --------- | ---------- |
+| w/o TTA w/o fixed feature attention         | 0.633     | 0.621      |
+| w/o TTA                                     | 0.633     | 0.625      |
+| study-level TTA                             | 0.634     | 0.626      |
+| image-level TTA                             | 0.635     | 0.627      |
+| both TTA                                    | 0.636     | 0.628      |
 
 
 ## Wish you have fun and save more lives in the world! :hospital:

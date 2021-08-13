@@ -7,27 +7,24 @@ import functools
 import os
 import pickle
 import random
-import math
+from collections import OrderedDict
+from multiprocessing import Pool
 
 import cv2
+import elasticdeform
 import numpy as np
 import pandas as pd
 import skimage
+import timm
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 import torchvision
+import utils
 import yaml
-from collections import Iterable, OrderedDict
-from PIL import Image, ImageEnhance
 from scipy.ndimage import gaussian_filter
 from sklearn.metrics import average_precision_score, roc_auc_score
 from torch import nn
-import elasticdeform
-import timm
-from multiprocessing import Pool
-
-import utils
 
 try:
     base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -61,11 +58,13 @@ def read_label(path, column_name, split, label_only=False):
             raise ValueError('no split column presents in the data')
     if label_only:
         return data[column_name].tolist()
-    
+
     return data[['ACCNO', column_name]].values.tolist()
 
+
 def read_image(path):
-    return torchvision.transforms.functional.to_tensor(cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
+    return torchvision.transforms.functional.to_tensor(
+        cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB))
 
 
 class ClassificationDataset(torch.utils.data.Dataset):
@@ -90,13 +89,14 @@ class ClassificationDataset(torch.utils.data.Dataset):
                 a batch of images)
             more_info: If True, image path and ACCNO will also be returned
         """
-            
+
         self.more_info = more_info
         self.task_name = task_name
         self.transform = transform
         self.multitask = multitask
         self.return_idx = return_idx
-        self.file_extension = metadata[task_name].get('file_extension', None) or 'png'
+        self.file_extension = metadata[task_name].get('file_extension',
+                                                      None) or 'png'
 
         image_folder = os.path.join(metadata['root_path'],
                                     metadata[task_name]['image_folder'])
@@ -106,7 +106,6 @@ class ClassificationDataset(torch.utils.data.Dataset):
                                   metadata[task_name]['label_file'])
         self.data = read_label(label_file,
                                metadata[task_name]['label_column_name'], split)
-        
 
         ignore_set = check_all_images_exist(
             image_folder,
@@ -115,7 +114,8 @@ class ClassificationDataset(torch.utils.data.Dataset):
             extension=self.file_extension)
         if 'ignore_not_found' in metadata[task_name]:
             self.data = [
-                x for x in self.data if (x[0] + '.' + self.file_extension) not in ignore_set
+                x for x in self.data
+                if (x[0] + '.' + self.file_extension) not in ignore_set
             ]
 
         print(f'len dataset: {len(self)}')
@@ -127,12 +127,14 @@ class ClassificationDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         accno = self.data[idx][0]
-        image_path = os.path.join(self.image_folder, accno + '.' + self.file_extension)
+        image_path = os.path.join(self.image_folder,
+                                  accno + '.' + self.file_extension)
         img = read_image(image_path)
 
-        if self.preprocess_resize_1024 and tuple(img.shape[-2:]) != (1024, 1024):
+        if self.preprocess_resize_1024 and tuple(
+                img.shape[-2:]) != (1024, 1024):
             img = torchvision.transforms.functional.resize(img, (1024, 1024))
-            
+
         if self.transform is not None:
             img = self.transform(img)
         label = self.data[idx][1]
@@ -149,15 +151,21 @@ class ClassificationDataset(torch.utils.data.Dataset):
 
 def get_single_dataset(arg):
     task, args, kwargs = arg
-    print(f"Loading {task} {kwargs['split'] if 'split' in kwargs else args[1]} data")
+    print(
+        f"Loading {task} {kwargs['split'] if 'split' in kwargs else args[1]} data"
+    )
     return ClassificationDataset(task, *args, **kwargs)
+
 
 class MultiTaskAggregatedClassificationDataset(torch.utils.data.Dataset):
     """Aggregating multiple datasets and output multiple labels for each image"""
+
     def __init__(self, task_names, *args, **kwargs):
         self.return_idx = kwargs.get('return_idx', False)
         with Pool(8) as pool:
-            self.datasets = list(pool.imap(get_single_dataset, ((task, args, kwargs) for task in task_names)))
+            self.datasets = list(
+                pool.imap(get_single_dataset,
+                          ((task, args, kwargs) for task in task_names)))
         self.task_names = task_names
         accno2label = OrderedDict()
         accno2label_mask = OrderedDict()
@@ -168,18 +176,20 @@ class MultiTaskAggregatedClassificationDataset(torch.utils.data.Dataset):
                 accno, label = dataset.data[idx]
                 if accno not in accno2label:
                     accno2label[accno] = torch.zeros(len(self.datasets)).long()
-                    accno2label_mask[accno] = torch.zeros(len(self.datasets)).bool()
-                    accno2dataset_idx[accno] = torch.zeros(len(self.datasets)).long()
+                    accno2label_mask[accno] = torch.zeros(len(
+                        self.datasets)).bool()
+                    accno2dataset_idx[accno] = torch.zeros(len(
+                        self.datasets)).long()
                 accno2label[accno][i] = label
                 accno2label_mask[accno][i] = True
                 accno2dataset_idx[accno][i] = idx
         self.label = list(accno2label.values())
         self.label_mask = list(accno2label_mask.values())
         self.dataset_idx = list(accno2dataset_idx.values())
-    
+
     def __len__(self):
         return len(self.label)
-    
+
     def __getitem__(self, idx):
         task_idx = torch.where(self.label_mask[idx])[0][0]
         out_item = self.datasets[task_idx][self.dataset_idx[idx][task_idx]]
@@ -187,9 +197,13 @@ class MultiTaskAggregatedClassificationDataset(torch.utils.data.Dataset):
         if self.return_idx:
             out_item[-1] = idx
         out_item.append(self.label_mask[idx])
-        return out_item # img, labels, ..., label_mask
+        return out_item  # img, labels, ..., label_mask
 
-def check_all_images_exist(image_folder, label_data, ignore_not_found=False, extension='png'):
+
+def check_all_images_exist(image_folder,
+                           label_data,
+                           ignore_not_found=False,
+                           extension='png'):
     """
         To check if all accno in the dataset has the corresponding image.
     """
@@ -265,7 +279,6 @@ def pil_loader(path):
         return img.convert('RGB')
 
 
-
 def all_gather(data):
     """
     Run all_gather on arbitrary picklable data (not necessarily tensors)
@@ -286,8 +299,8 @@ def all_gather(data):
     tensor = torch.ByteTensor(storage).to("cuda")
 
     # obtain Tensor size of each rank
-    local_size = torch.tensor([tensor.numel()], device="cuda") # pylint: disable=not-callable
-    size_list = [torch.tensor([0], device="cuda") for _ in range(world_size)] # pylint: disable=not-callable
+    local_size = torch.tensor([tensor.numel()], device="cuda")  # pylint: disable=not-callable
+    size_list = [torch.tensor([0], device="cuda") for _ in range(world_size)]  # pylint: disable=not-callable
     dist.all_gather(size_list, local_size)
     size_list = [int(size.item()) for size in size_list]
     max_size = max(size_list)
@@ -316,8 +329,7 @@ def all_gather(data):
 
 
 
-import torch.distributed as dist
-import functools
+
 def synchronize_variables(*args):
     """
         Aggregate the values processes by each torch
@@ -330,18 +342,23 @@ def synchronize_variables(*args):
     """
     dist.barrier()
     is_tensor = [isinstance(x, torch.Tensor) for x in args]
-    if [i for i, x in enumerate(args) if not is_tensor[i] and not isinstance(x, list)]:
-        raise ValueError(f'Unable to gather {type(args[i])} datas ({i}-th data).')
+    if [
+            i for i, x in enumerate(args)
+            if not is_tensor[i] and not isinstance(x, list)
+    ]:
+        raise ValueError(
+            f'Unable to gather {type(args[i])} datas ({i}-th data).')
     if is_tensor[-1]:
         all_img_ids = all_gather(args[-1])
         merged_img_ids = []
         for p in all_img_ids:
             merged_img_ids.extend(p.tolist())
     else:
-        merged_img_ids = functools.reduce(lambda x, y: (x + y), utils.all_gather(args[-1]))
+        merged_img_ids = functools.reduce(lambda x, y: (x + y),
+                                          utils.all_gather(args[-1]))
     merged_img_ids = np.array(merged_img_ids)
     merged_img_ids, idx = np.unique(merged_img_ids, return_index=True)
-    
+
     receives = []
     for i, arg in enumerate(args[:-1]):
         if is_tensor[i]:
@@ -351,10 +368,11 @@ def synchronize_variables(*args):
                 receive.append(p)
             receive = torch.cat([x.to(receive[0].device) for x in receive])[idx]
         else:
-            receive = functools.reduce(lambda x, y: (x + y), utils.all_gather(arg))
+            receive = functools.reduce(lambda x, y: (x + y),
+                                       utils.all_gather(arg))
             receive = [receive[j] for j in idx]
         receives.append(receive)
-        
+
     dist.barrier()
     return receives
 
@@ -376,7 +394,7 @@ def get_auc(scores, targets):
     auc = []
     for i in range(C):
         auc.append(roc_auc_score(onehot[:, i], scores[:, i]))
-    return torch.tensor(auc) # pylint: disable=not-callable
+    return torch.tensor(auc)  # pylint: disable=not-callable
 
 
 def get_ap(scores, targets):
@@ -396,7 +414,7 @@ def get_ap(scores, targets):
     ap = []
     for i in range(C):
         ap.append(average_precision_score(onehot[:, i], scores[:, i]))
-    return torch.tensor(ap) # pylint: disable=not-callable
+    return torch.tensor(ap)  # pylint: disable=not-callable
 
 
 class MLPLayer(nn.Module):
@@ -413,7 +431,7 @@ class MLPLayer(nn.Module):
         self.mlp.append(nn.Linear(in_features, out_features))
         self.mlp = nn.ModuleList(self.mlp)
 
-    def forward(self, x): # pylint: disable=arguments-differ
+    def forward(self, x):  # pylint: disable=arguments-differ
         feat = x
         for i in range(self.num_layers - 1):
             feat = F.relu(self.mlp[i](feat))
@@ -436,7 +454,7 @@ class MultiTaskModel(nn.ModuleDict):
         self.tasks = tasks
         super().__init__(modules)
 
-    def forward(self, x, tasks=None, key=None): # pylint: disable=arguments-differ
+    def forward(self, x, tasks=None, key=None):  # pylint: disable=arguments-differ
         """
             Args:
                 tasks: if given, must be one of the following format:
@@ -530,19 +548,21 @@ class RandomShift():
     def __call__(self, image):
         paste_rel_x, paste_rel_y = random.random(), random.random()
 
-    
         ## torch style
         shift_x = int(image.shape[-1] * self.scale_x * (2 * paste_rel_x - 1))
         shift_y = int(image.shape[-2] * self.scale_x * (2 * paste_rel_x - 1))
         if self.pad_mode == 'black':
-            mosaic = torch.zeros(*(image.shape[:-2]), image.shape[-2] * 3, image.shape[-1] * 3, dtype=image.dtype)
-            mosaic[..., image.shape[-2]: image.shape[-2] * 2, image.shape[-1]: image.shape[-1] * 2] = image
+            mosaic = torch.zeros(*(image.shape[:-2]),
+                                 image.shape[-2] * 3,
+                                 image.shape[-1] * 3,
+                                 dtype=image.dtype)
+            mosaic[..., image.shape[-2]:image.shape[-2] * 2,
+                   image.shape[-1]:image.shape[-1] * 2] = image
         elif self.pad_mode == 'repeat':
             mosaic = image.repeat(1, 3, 3)
         image = mosaic[...,
-                      image.shape[-2] - shift_y:image.shape[-2] * 2 - shift_y,
-                      image.shape[-1] - shift_x:image.shape[-1] * 2 - shift_x
-                     ]
+                       image.shape[-2] - shift_y:image.shape[-2] * 2 - shift_y,
+                       image.shape[-1] - shift_x:image.shape[-1] * 2 - shift_x]
         return image
 
 
@@ -608,7 +628,8 @@ class RandomBlur():
     """
 
     def __init__(self, scale):
-        raise ValueError('Please use torchvision.transforms.GaussianBlur instead.')
+        raise ValueError(
+            'Please use torchvision.transforms.GaussianBlur instead.')
         self.scale = scale  # scale = 1e-3 ~ 1e-2
         self.ToPILImage = torchvision.transforms.ToPILImage(mode='RGB')
 
@@ -658,7 +679,9 @@ class RandomNoise():
     """
 
     def __init__(self, n):
-        raise NotImplementedError('This is still the old version of PIL-style. Please re-implement with torch-style.')
+        raise NotImplementedError(
+            'This is still the old version of PIL-style. Please re-implement with torch-style.'
+        )
         self.n = n  # n = 0.5~5
         std = 0.05 * n
         self.var = std**2
@@ -686,28 +709,38 @@ class RandomNoise():
     def repr_oneline(self):
         return f'noise_{self.n}'
 
+
 def load_state_dict_reviser_not_strict(func):
+
     def load_state_dict_not_strict(*args, **kwargs):
         if not 'strict' in kwargs:
             kwargs['strict'] = False
         return func(*args, **kwargs)
+
     return load_state_dict_not_strict
 
 
 class FrozenBatchNorm2dWithEpsilon(torchvision.ops.misc.FrozenBatchNorm2d):
     """This class aims to make the epsilon consistent with the default value of torch.nn.BatchNorm2d"""
-    
+
     def __init__(self, *args, **kwargs):
         if 'eps' not in kwargs:
             kwargs['eps'] = 1e-5
         super().__init__(*args, **kwargs)
+
 
 class SAMOptim(torch.optim.Optimizer):
     """Code credit: https://github.com/davda54/sam/blob/main/sam.py
     This is the implementation of the paper: "Sharpness-Aware Minimization for Efficiently Improving Generalization"
     Revision with weight normalization.
     """
-    def __init__(self, params, base_optimizer, rho=0.05, weight_norm=False, **kwargs):
+
+    def __init__(self,
+                 params,
+                 base_optimizer,
+                 rho=0.05,
+                 weight_norm=False,
+                 **kwargs):
         assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
 
         defaults = dict(rho=rho, weight_norm=weight_norm, **kwargs)
@@ -725,7 +758,7 @@ class SAMOptim(torch.optim.Optimizer):
             self.first_step(*args, **kwargs)
         else:
             self.second_step(*args, update=update, **kwargs)
-    
+
     @torch.no_grad()
     def first_step(self, zero_grad=False):
         grad_norm = self._grad_norm()
@@ -735,32 +768,36 @@ class SAMOptim(torch.optim.Optimizer):
                 weight_norm = self._weight_norm()
 
             for p in group["params"]:
-                if p.grad is None: continue
+                if p.grad is None:
+                    continue
                 e_w = p.grad * scale
                 if group["weight_norm"]:
                     e_w *= p / (weight_norm + 1e-12)
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
                 self.state[p]["e_w"] = e_w
 
-        if zero_grad: self.zero_grad(set_to_none=True)
+        if zero_grad:
+            self.zero_grad(set_to_none=True)
 
     @torch.no_grad()
     def second_step(self, zero_grad=False, update=True):
         for group in self.param_groups:
             for p in group["params"]:
-                if p.grad is None or "e_w" not in self.state[p]: continue
+                if p.grad is None or "e_w" not in self.state[p]:
+                    continue
                 p.sub_(self.state[p]["e_w"])  # get back to "w" from "w + e(w)"
 
         if update:
             for group in self.param_groups:
                 for p in group["params"]:
-                    if p.grad is not None and self.state[p]['accumulate_grad'] is not None:
+                    if p.grad is not None and self.state[p][
+                            'accumulate_grad'] is not None:
                         p.grad.add_(self.state[p]['accumulate_grad'])
             self.base_optimizer.step()  # do the actual "sharpness-aware" update
             for group in self.param_groups:
                 for p in group["params"]:
                     self.state[p]['accumulate_grad'] = None
-            
+
         else:
             for group in self.param_groups:
                 for p in group["params"]:
@@ -776,33 +813,33 @@ class SAMOptim(torch.optim.Optimizer):
     #    raise NotImplementedError("SAM doesn't work like the other optimizers, you should first call `first_step` and the `second_step`; see the documentation for more info.")
 
     def _grad_norm(self):
-        norm = torch.norm(
-                    torch.stack([
-                        p.grad.norm(p=2)
-                        for group in self.param_groups for p in group["params"]
-                        if p.grad is not None
-                    ]),
-                    p=2
-               )
+        norm = torch.norm(torch.stack([
+            p.grad.norm(p=2)
+            for group in self.param_groups
+            for p in group["params"]
+            if p.grad is not None
+        ]),
+                          p=2)
         return norm
-    
+
     def _weight_norm(self):
-        norm = torch.norm(
-                    torch.stack([
-                        p.norm(p=2)
-                        for group in self.param_groups for p in group["params"]
-                        if p is not None
-                    ]),
-                    p=2
-               )
+        norm = torch.norm(torch.stack([
+            p.norm(p=2)
+            for group in self.param_groups
+            for p in group["params"]
+            if p is not None
+        ]),
+                          p=2)
         return norm
+
 
 class ElasticDeform():
     """
         Perform elastic deformation to the image and the target
         correspondingly.   
     """
-    def __init__(self, relative_sigma=1/40, points=5, order=0):
+
+    def __init__(self, relative_sigma=1 / 40, points=5, order=0):
         """
             Args:
                 relative_sigma (float): This value * image size would be 
@@ -814,53 +851,76 @@ class ElasticDeform():
         self.relative_sigma = relative_sigma
         self.points = points
         self.order = order
-    
+
     def __call__(self, image):
-        np_img = (image.permute(1, 2, 0) * 255).numpy().astype(np.uint8) # (H, W, C)
+        np_img = (image.permute(1, 2, 0) * 255).numpy().astype(
+            np.uint8)  # (H, W, C)
         height, width, channel = np_img.shape
-        
+
         # deform!
-        deformed_img = elasticdeform.deform_random_grid(np_img, sigma=width*self.relative_sigma, points=self.points, order=self.order, axis=(0,1))
-        
+        deformed_img = elasticdeform.deform_random_grid(np_img,
+                                                        sigma=width *
+                                                        self.relative_sigma,
+                                                        points=self.points,
+                                                        order=self.order,
+                                                        axis=(0, 1))
+
         # deformed image
         np_img_deformed = deformed_img[:, :, :channel]
-        torch_img_deformed = torchvision.transforms.functional.to_tensor(np_img_deformed)
-        
+        torch_img_deformed = torchvision.transforms.functional.to_tensor(
+            np_img_deformed)
+
         return torch_img_deformed
+
 
 class RandAugmentPT():
     """A wrapper for RandAugment in timm"""
-    
-    def __init__(self, in_size, ra_str='rand-m9-mstd0.5', img_mean=timm.data.constants.IMAGENET_DEFAULT_MEAN):
+
+    def __init__(self,
+                 in_size,
+                 ra_str='rand-m9-mstd0.5',
+                 img_mean=timm.data.constants.IMAGENET_DEFAULT_MEAN):
         if isinstance(img_mean, torch.Tensor):
             img_mean = img_mean.tolist()
         aa_params = dict(
             translate_const=int(in_size * 0.45),
             img_mean=tuple([min(255, round(255 * x)) for x in img_mean]),
         )
-        self.ra = timm.data.auto_augment.rand_augment_transform(ra_str, aa_params)
-        
+        self.ra = timm.data.auto_augment.rand_augment_transform(
+            ra_str, aa_params)
+
     def __call__(self, pt_img):
         pil_img = torchvision.transforms.functional.to_pil_image(pt_img)
         return torchvision.transforms.functional.to_tensor(self.ra(pil_img))
 
+
 class BCEWithLogitsCategoricalLoss():
+
     def __init__(self, p_0=1):
         """Args
             p_0: soft labeling. (default=1 for disabling)
         """
         self.p_0 = p_0
-        
+
     def __call__(self, preds, targets):
         # preds (N, C, ...)
         # targets (N, ...)
         C = preds.shape[1]
-        span_targets = torch.full(preds.shape, (1 - self.p_0) / (C - 1), device=targets.device)
-        idxes = [torch.tensor(range(shape))[..., None].repeat(1, torch.tensor(targets.shape[i + 1:]).prod()).flatten() if i != len(targets.shape) - 1 else torch.tensor(range(shape)) for i, shape in enumerate(targets.shape)]
+        span_targets = torch.full(preds.shape, (1 - self.p_0) / (C - 1),
+                                  device=targets.device)
+        idxes = [
+            torch.tensor(range(shape))[..., None].repeat(
+                1,
+                torch.tensor(targets.shape[i + 1:]).prod()).flatten()
+            if i != len(targets.shape) - 1 else torch.tensor(range(shape))
+            for i, shape in enumerate(targets.shape)
+        ]
         idxes = [x.repeat(round(len(idxes[0]) / len(x))) for x in idxes]
         idxes.insert(1, targets.flatten())
         span_targets[idxes] = self.p_0
-        return torch.nn.functional.binary_cross_entropy_with_logits(preds, span_targets)
+        return torch.nn.functional.binary_cross_entropy_with_logits(
+            preds, span_targets)
+
 
 class FocalLoss(torch.nn.Module):
     """Focal loss with sigmoid and softmax version

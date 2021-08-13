@@ -1,6 +1,7 @@
 exts = {'.jpeg', '.jpg', '.png'}
 
 import cv2
+
 paths = []
 out_paths = []
 for folder, _, files in os.walk('.'):
@@ -14,13 +15,18 @@ for folder, _, files in os.walk('.'):
             #img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
             #shapes.append(img.shape[-3:-1])
             #cv2.imwrite(out_path, img)
-            
-from tqdm import tqdm
+
 from multiprocessing import Pool
+
+from tqdm import tqdm
+
+
 def run(i):
     path, out_path = paths[i], out_paths[i]
     img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
     cv2.imwrite(out_path, img)
     return img.shape[-3:-1]
+
+
 with Pool(16) as pool:
     shapes = [shape for shape in tqdm(pool.imap(run, range(len(paths))))]

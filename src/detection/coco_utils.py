@@ -1,18 +1,16 @@
 import copy
 import os
-from PIL import Image
 
+import myUtils
 import torch
 import torch.utils.data
 import torchvision
-
 from pycocotools import mask as coco_mask
 from pycocotools.coco import COCO
 
-import myUtils
-
 
 class FilterAndRemapCocoCategories(object):
+
     def __init__(self, categories, remap=True):
         self.categories = categories
         self.remap = remap
@@ -48,6 +46,7 @@ def convert_coco_poly_to_mask(segmentations, height, width):
 
 
 class ConvertCocoPolysToMask(object):
+
     def __call__(self, image, target):
         w, h = image.size
 
@@ -104,11 +103,13 @@ class ConvertCocoPolysToMask(object):
 
 
 def _coco_remove_images_without_annotations(dataset, cat_list=None):
+
     def _has_only_empty_bbox(anno):
         return all(any(o <= 1 for o in obj["bbox"][2:]) for obj in anno)
 
     def _count_visible_keypoints(anno):
-        return sum(sum(1 for v in ann["keypoints"][2::3] if v > 0) for ann in anno)
+        return sum(
+            sum(1 for v in ann["keypoints"][2::3] if v > 0) for ann in anno)
 
     min_keypoints_per_image = 10
 
@@ -144,6 +145,8 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
 
 
 from tqdm import tqdm
+
+
 def convert_to_coco_api(ds):
     coco_ds = COCO()
     # annotation IDs need to start at 1, not 0, see torchvision issue #1530
@@ -209,6 +212,7 @@ def get_coco_api_from_dataset(dataset):
 
 
 class CocoDetection(torchvision.datasets.CocoDetection):
+
     def __init__(self, img_folder, ann_file, transforms):
         super(CocoDetection, self).__init__(img_folder, ann_file)
         self._transforms = transforms
@@ -225,8 +229,12 @@ class CocoDetection(torchvision.datasets.CocoDetection):
 def get_coco(root, image_set, transforms, mode='instances'):
     anno_file_template = "{}_{}2017.json"
     PATHS = {
-        "train": ("train2017", os.path.join("annotations", anno_file_template.format(mode, "train"))),
-        "val": ("val2017", os.path.join("annotations", anno_file_template.format(mode, "val"))),
+        "train": ("train2017",
+                  os.path.join("annotations",
+                               anno_file_template.format(mode, "train"))),
+        "val": ("val2017",
+                os.path.join("annotations",
+                             anno_file_template.format(mode, "val"))),
         # "train": ("val2017", os.path.join("annotations", anno_file_template.format(mode, "val")))
     }
 

@@ -9,22 +9,16 @@ from __future__ import print_function
 import argparse
 import datetime
 import os
-import subprocess
-import sys
 import time
-import copy
-from collections import OrderedDict
-
-import torch
-import torch.utils.data
-import torchvision
-from torch import nn
-from torchvision import transforms
-import timm
 
 import deterministic_setting  # pylint: disable=unused-import
 import myUtils
+import timm
+import torch
+import torch.utils.data
 import utils
+from torch import nn
+from torchvision import transforms
 
 parser = argparse.ArgumentParser()
 parser.add_argument('config_file', type=str)
@@ -53,6 +47,7 @@ config_file = os.path.join(output_dir, 'config.txt')
 if os.path.isfile(config_file):
     os.remove(config_file)
 
+
 def train_one_epoch(
         model,  # pylint: disable=redefined-outer-name
         criterion,  # pylint: disable=redefined-outer-name
@@ -79,16 +74,17 @@ def train_one_epoch(
     if args_dict['warmup_lr'] and epoch == 0:
         base_lr = optimizer.param_groups[0]['lr']
         warmup_iter = min(round(len(data_loader)), 1000)
-        
-    for i, (image, target) in enumerate(metric_logger.log_every(data_loader, print_freq,header)):
+
+    for i, (image, target) in enumerate(
+            metric_logger.log_every(data_loader, print_freq, header)):
         if args_dict['warmup_lr'] and epoch == 0 and i < warmup_iter:
             optimizer.param_groups[0]['lr'] = base_lr * (i + 1) / warmup_iter
-        
+
         start_time_loop = time.time()
         image, target = image.to(device), target.to(device)
         if args_dict['amp']:
             image = image.to(memory_format=torch.channels_last)
-        
+
         if args_dict['SAM']:
             with torch.cuda.amp.autocast(enabled=args_dict['amp']):
                 output = model(image)
@@ -98,7 +94,7 @@ def train_one_epoch(
             scaler.step(optimizer, first_step=True)
             scaler.update()
             optimizer.zero_grad(set_to_none=True)
-            
+
             with torch.cuda.amp.autocast(enabled=args_dict['amp']):
                 output = model(image)
                 loss = criterion(output, target)
@@ -107,7 +103,7 @@ def train_one_epoch(
             scaler.step(optimizer, first_step=False, update=True)
             scaler.update()
             optimizer.zero_grad(set_to_none=True)
-            
+
         else:
             with torch.cuda.amp.autocast(enabled=args_dict['amp']):
                 output = model(image)
@@ -120,7 +116,8 @@ def train_one_epoch(
         batch_size = image.shape[0]
         metric_logger.update(loss=loss.item(),
                              lr=optimizer.param_groups[0]["lr"])
-        metric_logger.meters['img/s'].update(round(batch_size / (time.time() - start_time_loop), 3))
+        metric_logger.meters['img/s'].update(
+            round(batch_size / (time.time() - start_time_loop), 3))
 
 
 def evaluate(model, criterion, data_loader, device, print_freq=10):  # pylint: disable=redefined-outer-name
@@ -225,7 +222,7 @@ elif args_dict['pretrained'] == 'imagenet':
     else:
         raise ValueError(f'Not known how to set normalizations '
                          f'for {args_dict["model_name"]} models.')
-    
+
 normalize = transforms.Normalize(mean=norm_mean, std=norm_std)
 
 # Set Training transforms
@@ -242,18 +239,23 @@ if args_dict['blur']:
 if args_dict['noise']:
     transform_train_list.append(myUtils.RandomNoise(n=0.5))
 if args_dict['flip']:
-    transform_train_list.append(transforms.RandomHorizontalFlip(p=args_dict.get('flip_p', 0.5)))
+    transform_train_list.append(
+        transforms.RandomHorizontalFlip(p=args_dict.get('flip_p', 0.5)))
 if args_dict['flip_vertical']:
-    transform_train_list.append(transforms.RandomVerticalFlip(p=args_dict.get('flip_p', 0.5)))
+    transform_train_list.append(
+        transforms.RandomVerticalFlip(p=args_dict.get('flip_p', 0.5)))
 if args_dict['shift']:
     transform_train_list.append(
         myUtils.RandomShift(scale_x=0.2,
                             scale_y=0.2,
                             pad_mode=args_dict['shift_mode']))
 if args_dict['RandomResizedCrop']:
-    transform_train_list.append(transforms.RandomResizedCrop(args_dict['model_input_size']))
+    transform_train_list.append(
+        transforms.RandomResizedCrop(args_dict['model_input_size']))
 if args_dict['RandAugment']:
-    transform_train_list.append(myUtils.RandAugmentPT(args_dict['model_input_size'], img_mean=norm_mean))
+    transform_train_list.append(
+        myUtils.RandAugmentPT(args_dict['model_input_size'],
+                              img_mean=norm_mean))
 if args_dict['random_perspective']:
     transform_train_list.append(transforms.RandomPerspective(p=0.5))
 if args_dict['rotation']:
@@ -275,9 +277,7 @@ transform_train_list = [
     transforms.Resize(args_dict['model_input_size'])
 ]
 
-transform_test_list = [
-    transforms.Resize(args_dict['model_input_size'])
-]
+transform_test_list = [transforms.Resize(args_dict['model_input_size'])]
 
 transform_train_list.append(normalize)
 transform_test_list.append(normalize)
@@ -287,7 +287,7 @@ transform_train = transforms.Compose(transform_train_list)
 
 # Load Data
 print("Loading training data")
-    
+
 dataset_train = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
     split='train',
@@ -301,7 +301,7 @@ dataset_val = myUtils.ClassificationDataset(
     transform=transform_test,
     return_idx=True,
 )
-    
+
 print("Loading training data for evaluation")
 dataset_train_evaluate = myUtils.ClassificationDataset(
     task_name=args_dict['task_name'],
@@ -342,18 +342,19 @@ data_loader_train_evaluate = torch.utils.data.DataLoader(
     num_workers=min(args_dict['batch_size'] // 2, 16),
     pin_memory=False)
 
-
 print("Create model")
 # create model
 if args_dict['model_name'] in timm.list_models():
     model = timm.create_model(
         args_dict['model_name'],
         pretrained=(args_dict['pretrained'] == 'imagenet'),
-        num_classes=myUtils.metadata[args_dict['task_name']]['num_classes']
-    )
-    
+        num_classes=myUtils.metadata[args_dict['task_name']]['num_classes'])
+
 if args_dict['pretrained'] is not None and args_dict['pretrained'] != 'imagenet':
-    msg = model.load_state_dict({k: v for k, v in checkpoint['model'].items() if k not in ['fc.weight', 'fc.bias', 'classifier.weight', 'classifier.bias']})
+    msg = model.load_state_dict({
+        k: v for k, v in checkpoint['model'].items() if k not in
+        ['fc.weight', 'fc.bias', 'classifier.weight', 'classifier.bias']
+    })
     print(f'weight loading state: {msg}')
 
 print(model.to(device))
@@ -364,11 +365,12 @@ if args_dict['amp']:
 
 criterion = nn.CrossEntropyLoss()
 if args_dict['use_focal_loss']:
-    criterion = myUtils.FocalLoss(activation=('softmax' if not args_dict['use_sigmoid'] else 'sigmoid'),
-                                  gamma=args_dict['FL_gamma'],
-                                  alpha=args_dict['FL_alpha'],
-                                  suppress=args_dict['FL_suppress'],
-                                 )
+    criterion = myUtils.FocalLoss(
+        activation=('softmax' if not args_dict['use_sigmoid'] else 'sigmoid'),
+        gamma=args_dict['FL_gamma'],
+        alpha=args_dict['FL_alpha'],
+        suppress=args_dict['FL_suppress'],
+    )
 elif args_dict['use_sigmoid']:
     criterion = myUtils.BCEWithLogitsCategoricalLoss()
 
@@ -376,20 +378,19 @@ if args_dict['optimizer'] == 'SGD':
     optim_class = torch.optim.SGD
     optim_params = dict(lr=args_dict['lr'],
                         momentum=0.9,
-                        weight_decay=args_dict['weight_decay']
-                       )
+                        weight_decay=args_dict['weight_decay'])
 elif args_dict['optimizer'] == 'Adam':
     optim_class = torch.optim.Adam
     optim_params = dict(lr=args_dict['lr'],
                         amsgrad=True,
-                        weight_decay=args_dict['weight_decay']
-                       )
+                        weight_decay=args_dict['weight_decay'])
 
 if args_dict['SAM']:
-    optimizer = myUtils.SAMOptim(model.parameters(), optim_class, **optim_params)
+    optimizer = myUtils.SAMOptim(model.parameters(), optim_class,
+                                 **optim_params)
 else:
     optimizer = optim_class(model.parameters(), **optim_params)
-    
+
 scaler = torch.cuda.amp.GradScaler(enabled=args_dict['amp'])
 
 model_without_ddp = model
@@ -399,7 +400,7 @@ if args.distributed:
     model_without_ddp = model.module
 
 start_epoch = 0
-        
+
 print("Start training")
 start_time = time.time()
 for epoch in range(start_epoch, args_dict['epochs']):
@@ -407,19 +408,17 @@ for epoch in range(start_epoch, args_dict['epochs']):
         train_sampler.set_epoch(epoch)
     train_one_epoch(model, criterion, optimizer, data_loader_train, device,
                     epoch, 10, scaler)
-    val_ap, val_auc = evaluate(model,
-                                criterion,
-                                data_loader_val,
-                                device=device)
+    val_ap, val_auc = evaluate(model, criterion, data_loader_val, device=device)
     if epoch == start_epoch or (epoch + start_epoch) % 5 == 4:
         train_ap, train_auc = evaluate(model,
-                                        criterion,
-                                        data_loader_train_evaluate,
-                                        device=device)
+                                       criterion,
+                                       data_loader_train_evaluate,
+                                       device=device)
     if output_dir:
         # save model
         checkpoint = {
-            'model':model_without_ddp.state_dict(),
+            'model':
+                model_without_ddp.state_dict(),
             'scaler':
                 scaler.state_dict(),
             'epoch':
@@ -434,8 +433,10 @@ for epoch in range(start_epoch, args_dict['epochs']):
                 val_auc,
             'training_time':
                 str(datetime.timedelta(seconds=int(time.time() - start_time))),
-            'norm_mean': norm_mean,
-            'norm_std': norm_std,
+            'norm_mean':
+                norm_mean,
+            'norm_std':
+                norm_std,
         }
         if args_dict['choose_best'] == 'ap':
             metric_value = val_ap

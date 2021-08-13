@@ -1,8 +1,7 @@
 import os
-import re
-import torch
-import datetime
 from collections import OrderedDict
+
+import torch
 
 ckpt_file = 'work_dir/multitask/pretrained_run1/model_best_auc.pth'
 header_key = 'backbone.'
@@ -12,7 +11,9 @@ os.makedirs(target_folder, exist_ok=True)
 output_file = os.path.join(target_folder, 'pretrained_run1_transferred.pth')
 ckpt = torch.load(ckpt_file, map_location='cpu')
 
-weights = OrderedDict([(k[len(header_key):], v) for k, v in ckpt['model'].items() if header_key in k])
+weights = OrderedDict([(k[len(header_key):], v)
+                       for k, v in ckpt['model'].items()
+                       if header_key in k])
 
 new_ckpt = dict(
     model=weights,

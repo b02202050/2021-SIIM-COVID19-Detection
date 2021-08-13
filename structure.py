@@ -2,6 +2,7 @@
 # +
 from pathlib import Path
 
+
 class DisplayablePath(object):
     display_filename_prefix_middle = '├──'
     display_filename_prefix_last = '└──'
@@ -31,9 +32,8 @@ class DisplayablePath(object):
         displayable_root = cls(root, parent, is_last)
         yield displayable_root
 
-        children = sorted(list(path
-                               for path in root.iterdir()
-                               if criteria(path)),
+        children = sorted(list(
+            path for path in root.iterdir() if criteria(path)),
                           key=lambda s: str(s).lower())
         if len(children) > 0:
             for ext in ['.jpg', '.JPG', '.JPEG', '.jpeg', '.png', '.dcm']:
@@ -67,18 +67,15 @@ class DisplayablePath(object):
         if self.parent is None:
             return self.displayname
 
-        _filename_prefix = (self.display_filename_prefix_last
-                            if self.is_last
+        _filename_prefix = (self.display_filename_prefix_last if self.is_last
                             else self.display_filename_prefix_middle)
 
-        parts = ['{!s} {!s}'.format(_filename_prefix,
-                                    self.displayname)]
+        parts = ['{!s} {!s}'.format(_filename_prefix, self.displayname)]
 
         parent = self.parent
         while parent and parent.parent is not None:
-            parts.append(self.display_parent_prefix_middle
-                         if parent.is_last
-                         else self.display_parent_prefix_last)
+            parts.append(self.display_parent_prefix_middle if parent.
+                         is_last else self.display_parent_prefix_last)
             parent = parent.parent
 
         return ''.join(reversed(parts))
@@ -93,7 +90,3 @@ for path in paths:
     if any([x in out for x in ['ipynb_checkpoints', 'gitignore']]):
         continue
     print(path.displayable())
-
-
-
-

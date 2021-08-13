@@ -3,14 +3,15 @@
 """
 # pylint: disable-all
 from __future__ import print_function
-from collections import defaultdict, deque
-import datetime
-import time
-import torch
-import torch.distributed as dist
 
+import datetime
 import errno
 import os
+import time
+from collections import defaultdict, deque
+
+import torch
+import torch.distributed as dist
 
 
 class SmoothedValue(object):

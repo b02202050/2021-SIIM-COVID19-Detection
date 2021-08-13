@@ -5,8 +5,8 @@ Please refer to https://pytorch.org/docs/stable/notes/randomness.html"""
 
 import os
 import random as rn
-import numpy as np
 
+import numpy as np
 import torch
 
 
@@ -19,7 +19,7 @@ def set_deterministic(seed=None):
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    
+
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 
