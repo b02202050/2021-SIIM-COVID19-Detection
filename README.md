@@ -91,7 +91,7 @@ We ensemble 5-fold CV study-level and image-level models respectively for our fi
 #### Ploting learning curve
 When training each model, you can use *plot_metrics.ipynb* to plot the learning curve by simply modifying the `model_folder` with the work_dir of each training run.
 
-#### Multi-task classification pretraining
+#### Multi-task classification pre-training
 ```bash
 $ cd $SIIM_root/src/classification
 $ python train_multitask_classification.py
@@ -100,6 +100,7 @@ $ python transfer_multitask_pretrained_backbone.py
 The average AUROC of all validation task is 0.9054
 
 #### SIIM Covid19 study-level training
+*Note: If you want to train the models without using the pre-trained weights, you can set `args_dict['pretrained'] = 'imagenet'` in the config file.*
 ```bash
 $ cd $SIIM_root/src/classification
 $ python train_classification.py configs/config_cv0.py
@@ -115,7 +116,7 @@ $ python train_classification.py configs/config_cv4.py
 
 The final trained study-level model will be saved at `$SIIM_root/src/classification/work_dir/covid19_kaggle_train_cv_5_*_run1/model_best.pth` where * should be replaced with 0 to 4.
 
-#### RSNA pneumonia detection pretraining
+#### RSNA pneumonia detection pre-training
 ```bash
 $ cd $SIIM_root/src/detection
 $ python train_detection.py configs/config_RSNA_pna_pretraining.py
@@ -125,6 +126,7 @@ The validation mAP\@0.5 is 0.4352
 
 
 #### SIIM Covid19 image-level training
+*Note: If you want to train the models without using the pre-trained weights, you can set `args_dict['fine_tune'] = False` in the config file.*
 ```bash
 $ cd $SIIM_root/src/detection
 $ python train_detection_with_cls_feats.py configs/config_cv0.py
