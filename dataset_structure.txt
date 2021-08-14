@@ -69,57 +69,95 @@ dataset/
 │   │   │   ├── Covid-19/
 │   │   │   │   └── *.png
 │   │   │   ├── Normal/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   ├── *.jpeg
+│   │   │   │   └── *.png
 │   │   │   └── Pneumonia/
+│   │   │       ├── *.jpeg
 │   │   │       └── *.png
 │   │   ├── Train/
 │   │   │   ├── Covid-19/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   ├── *.JPG
+│   │   │   │   ├── *.jpeg
+│   │   │   │   └── *.png
 │   │   │   ├── Normal/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   ├── *.jpeg
+│   │   │   │   └── *.png
 │   │   │   └── Pneumonia/
-│   │   │       └── *.jpg
+│   │   │       ├── *.jpg
+│   │   │       ├── *.jpeg
+│   │   │       └── *.png
 │   │   └── Val/
 │   │       ├── Covid-19/
-│   │       │   └── *.jpeg
+│   │       │   ├── *.jpg
+│   │       │   ├── *.jpeg
+│   │       │   └── *.png
 │   │       ├── Normal/
-│   │       │   └── *.jpg
+│   │       │   ├── *.jpg
+│   │       │   └── *.png
 │   │       └── Pneumonia/
-│   │           └── *.jpg
+│   │           ├── *.jpg
+│   │           └── *.png
 │   ├── 5-classes/
 │   │   ├── Test/
 │   │   │   ├── Bacterial/
+│   │   │   │   ├── *.jpeg
 │   │   │   │   └── *.png
 │   │   │   ├── Covid-19/
 │   │   │   │   └── *.png
 │   │   │   ├── Lung Opacity/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   └── *.png
 │   │   │   ├── Normal/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   ├── *.jpeg
+│   │   │   │   └── *.png
 │   │   │   └── Viral/
-│   │   │       └── *.jpeg
+│   │   │       ├── *.jpeg
+│   │   │       └── *.png
 │   │   ├── Train/
 │   │   │   ├── Bacterial/
+│   │   │   │   ├── *.jpg
+│   │   │   │   ├── *.jpeg
 │   │   │   │   └── *.png
 │   │   │   ├── Covid-19/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   ├── *.JPG
+│   │   │   │   ├── *.jpeg
+│   │   │   │   └── *.png
 │   │   │   ├── Lung Opacity/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   └── *.png
 │   │   │   ├── Normal/
-│   │   │   │   └── *.jpg
+│   │   │   │   ├── *.jpg
+│   │   │   │   ├── *.jpeg
+│   │   │   │   └── *.png
 │   │   │   └── Viral/
-│   │   │       └── *.jpeg
+│   │   │       ├── *.jpg
+│   │   │       ├── *.jpeg
+│   │   │       └── *.png
 │   │   └── Val/
 │   │       ├── Bacterial/
-│   │       │   └── *.jpg
+│   │       │   ├── *.jpg
+│   │       │   ├── *.JPG
+│   │       │   ├── *.jpeg
+│   │       │   └── *.png
 │   │       ├── Covid-19/
-│   │       │   └── *.jpeg
+│   │       │   ├── *.jpg
+│   │       │   ├── *.jpeg
+│   │       │   └── *.png
 │   │       ├── Lung Opacity/
-│   │       │   └── *.jpg
+│   │       │   ├── *.jpg
+│   │       │   └── *.png
 │   │       ├── Normal/
-│   │       │   └── *.jpg
+│   │       │   ├── *.jpg
+│   │       │   └── *.png
 │   │       └── Viral/
-│   │           └── *.jpg
+│   │           ├── *.jpg
+│   │           ├── *.jpeg
+│   │           └── *.png
 │   ├── all_symlinks/
 │   │   └── *.png
 │   ├── covid19-xray-two-proposed-databases_3-classes.csv
@@ -137,7 +175,10 @@ dataset/
 │   │   └── *.png
 │   ├── test.txt
 │   ├── train/
-│   │   └── *.jpg
+│   │   ├── *.jpg
+│   │   ├── *.JPG
+│   │   ├── *.jpeg
+│   │   └── *.png
 │   ├── train.txt
 │   └── unify_file_extensions.py
 ├── curated-chest-xray-image-dataset-for-covid19/

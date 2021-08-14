@@ -36,9 +36,12 @@ class DisplayablePath(object):
             path for path in root.iterdir() if criteria(path)),
                           key=lambda s: str(s).lower())
         if len(children) > 0:
+            ext_children = []
             for ext in ['.jpg', '.JPG', '.JPEG', '.jpeg', '.png', '.dcm']:
-                if str(children[0]).endswith(ext):
-                    children = [Path('*' + ext)]
+                if any(str(child).endswith(ext) for child in children):
+                    ext_children.append(Path('*' + ext))
+            if len(ext_children) > 0:
+                children = ext_children
             if len(children) > 100 and children[0].is_dir():
                 children = [Path(f'[{len(children)} folders]')]
         count = 1
