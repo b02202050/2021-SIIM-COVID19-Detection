@@ -68,17 +68,17 @@ If the patient ID is present, we split the dataset by it.
 ![Alt text](./images/summary.png?raw=true "Optional Title")
 * Multi-task classification:
   * Shared-backbone multi-head classifier
-* Sharpness-aware minimization:
+* Sharpness-aware minimization (SAM):
   * Foret, Pierre, et al. "Sharpness-aware minimization for efficiently improving generalization." arXiv preprint arXiv:2010.01412 (2020).
 * Inverse focal loss:
   * replace `(1-p_t) ** gamma` with `p_t ** gamma` in the original focal loss to suppress outlier samples.
-* Stochastic weight averaging:
+* Stochastic weight averaging (SWA):
   * Izmailov, Pavel, et al. "Averaging weights leads to wider optima and better generalization." arXiv preprint arXiv:1803.05407 (2018).
-* Attentional-guided context FPN:
+* Attentional-guided context FPN (ACFPN):
   * Cao, Junxu, et al. "Attention-guided context feature pyramid network for object detection." arXiv preprint arXiv:2005.11475 (2020).
-* Attentional feature fusion:
+* Attentional feature fusion (AFF):
   * Dai, Yimian, et al. "Attentional feature fusion." Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision. 2021.
-* Fixed feature attention:
+* Fixed feature attention (FFA):
   * We use feature pyramid from the classification model for attention.
 ![Alt text](./images/attention.png?raw=true "Optional Title")
 
