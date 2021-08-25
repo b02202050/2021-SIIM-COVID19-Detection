@@ -14,9 +14,9 @@
 * Download [the main competition dataset](https://www.kaggle.com/c/siim-covid19-detection/data) then extract to ./dataset/siim-covid19-detection
 
 ```bash
-$ cd dataset/siim-covid19-detection
-$ python dcm2png.py
-$ python make_image_symlink.py
+cd dataset/siim-covid19-detection
+python dcm2png.py
+python make_image_symlink.py
 ```
 
 #### External datasets
@@ -31,14 +31,14 @@ $ python make_image_symlink.py
 * Download [pneumonia_RSNA](https://www.kaggle.com/c/rsna-pneumonia-detection-challenge/data) then extract to ./dataset/rsna-pneumonia-detection-challenge/
 
 ```bash
-$ cd dataset/chest-xray-covid19-pneumonia && python make_image_symlink.py && cd -
-$ cd dataset/covidx-cxr2 && python unify_file_extensions.py && python make_image_symlink.py && cd -
-$ cd dataset/chest-xray-pneumonia && python make_image_symlink.py && cd -
-$ cd dataset/curated-chest-xray-image-dataset-for-covid19 && python make_image_symlink.py && cd -
-$ cd datasetcovid19-xray-two-proposed-databases && python unify_file_extensions.py && python make_image_symlink.py && cd -
-$ cd dataset/curated-chest-xray-image-dataset-for-covid19 && python make_image_symlink.py && cd -
-$ cd dataset/CheXpert-v1.0 && python make_image_symlink.py && cd -
-$ cd dataset/rsna-pneumonia-detection-challenge && python dcm2png.py && cd - # I did not notice that this preprocessing may not be correct. You can use more correct processing (But may not reproduce my results.)
+cd dataset/chest-xray-covid19-pneumonia && python make_image_symlink.py && cd -
+cd dataset/covidx-cxr2 && python unify_file_extensions.py && python make_image_symlink.py && cd -
+cd dataset/chest-xray-pneumonia && python make_image_symlink.py && cd -
+cd dataset/curated-chest-xray-image-dataset-for-covid19 && python make_image_symlink.py && cd -
+cd datasetcovid19-xray-two-proposed-databases && python unify_file_extensions.py && python make_image_symlink.py && cd -
+cd dataset/curated-chest-xray-image-dataset-for-covid19 && python make_image_symlink.py && cd -
+cd dataset/CheXpert-v1.0 && python make_image_symlink.py && cd -
+cd dataset/rsna-pneumonia-detection-challenge && python dcm2png.py && cd - # I did not notice that this preprocessing may not be correct. You can use more correct processing (But may not reproduce my results.)
 ```
 <!-- #endregion -->
 
@@ -93,21 +93,21 @@ When training each model, you can use *plot_metrics.ipynb* to plot the learning 
 
 #### Multi-task classification pre-training
 ```bash
-$ cd $SIIM_root/src/classification
-$ python train_multitask_classification.py
-$ python transfer_multitask_pretrained_backbone.py
+cd $SIIM_root/src/classification
+python train_multitask_classification.py
+python transfer_multitask_pretrained_backbone.py
 ```
 The average AUROC of all validation task is 0.9054
 
 #### SIIM Covid19 study-level training
 *Note: If you want to train the models without using the pre-trained weights, you can set `args_dict['pretrained'] = 'imagenet'` in the config file.*
 ```bash
-$ cd $SIIM_root/src/classification
-$ python train_classification.py configs/config_cv0.py
-$ python train_classification.py configs/config_cv1.py
-$ python train_classification.py configs/config_cv2.py
-$ python train_classification.py configs/config_cv3.py
-$ python train_classification.py configs/config_cv4.py
+cd $SIIM_root/src/classification
+python train_classification.py configs/config_cv0.py
+python train_classification.py configs/config_cv1.py
+python train_classification.py configs/config_cv2.py
+python train_classification.py configs/config_cv3.py
+python train_classification.py configs/config_cv4.py
 ```
 
 |                             | Fold 0 | Fold 1 | Fold 2 | Fold 3 | Fold 4 |
@@ -118,8 +118,8 @@ The final trained study-level model will be saved at `$SIIM_root/src/classificat
 
 #### RSNA pneumonia detection pre-training
 ```bash
-$ cd $SIIM_root/src/detection
-$ python train_detection.py configs/config_RSNA_pna_pretraining.py
+cd $SIIM_root/src/detection
+python train_detection.py configs/config_RSNA_pna_pretraining.py
 ```
 
 The validation mAP\@0.5 is 0.4352
@@ -128,12 +128,12 @@ The validation mAP\@0.5 is 0.4352
 #### SIIM Covid19 image-level training
 *Note: If you want to train the models without using the pre-trained weights, you can set `args_dict['fine_tune'] = False` in the config file.*
 ```bash
-$ cd $SIIM_root/src/detection
-$ python train_detection_with_cls_feats.py configs/config_cv0.py
-$ python train_detection_with_cls_feats.py configs/config_cv1.py
-$ python train_detection_with_cls_feats.py configs/config_cv2.py
-$ python train_detection_with_cls_feats.py configs/config_cv3.py
-$ python train_detection_with_cls_feats.py configs/config_cv4.py
+cd $SIIM_root/src/detection
+python train_detection_with_cls_feats.py configs/config_cv0.py
+python train_detection_with_cls_feats.py configs/config_cv1.py
+python train_detection_with_cls_feats.py configs/config_cv2.py
+python train_detection_with_cls_feats.py configs/config_cv3.py
+python train_detection_with_cls_feats.py configs/config_cv4.py
 ```
 
 validation mAP\@0.5
